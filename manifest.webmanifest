@@ -1,0 +1,23 @@
+{
+  "name": "Elektrikár do vrecka",
+  "short_name": "Elektrikár",
+  "description": "Offline pomôcka pre elektrikára: kábel a istenie, úbytok napätia, odpojenie poruchy, motory, fotovoltika, wallboxy a slovník SK–DE. VDE/DIN a STN.",
+  "lang": "sk",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0e1216",
+  "theme_color": "#101418",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Kábel a istenie", "url": "./index.html#/kalkulacka" },
+    { "name": "Slovník SK–DE", "url": "./index.html#/slovnik" },
+    { "name": "Tabuľky", "url": "./index.html#/tabulky" }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "elektrikar-do-vrecka",
+  "version": "1.0.0",
+  "description": "PWA pomôcka pre elektrikára — kábel, istenie, FV, wallbox, slovník SK-DE. Bez buildu, bez závislostí.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node tests/run.mjs"
+  }
+}
