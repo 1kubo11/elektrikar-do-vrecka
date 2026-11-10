@@ -24,28 +24,30 @@ export function render(root, ctx) {
   root.innerHTML = `
     <form autocomplete="off">
       <div class="grid">
-        ${segmented({ name: 'phases', label: 'Sieť', value: S.phases, options: [{ v: 1, t: '1f 230 V' }, { v: 3, t: '3f 400 V' }] })}
-        ${fieldNum({ name: 'power', label: 'Výkon na štítku', de: 'Nennleistung', value: S.power, unit: 'kW' })}
-        ${fieldNum({ name: 'U', label: 'Napätie', de: 'Spannung', value: S.U, unit: 'V', placeholder: Number(S.phases) === 3 ? '400' : '230' })}
-        ${fieldNum({ name: 'cos', label: 'cos φ zo štítku', value: S.cos, placeholder: 'z dát', hint: 'Nezadané = orientačná hodnota podľa výkonu (NEOVERENÉ)' })}
-        ${fieldNum({ name: 'efficiency', label: 'Účinnosť η zo štítku', value: S.efficiency, placeholder: 'z dát', hint: 'Napr. 0,9. Nezadané = orientačná hodnota' })}
-        ${fieldSelect({ name: 'startMode', label: 'Spôsob rozbehu', de: 'Anlaufart', value: S.startMode, options: [
-          { v: 'direct', t: 'Priamy štart (DOL)' },
-          { v: 'stardelta', t: 'Hviezda-trojuholník (Y/D)' },
+        ${segmented({ name: 'phases', label: 'Koľko fáz?', value: S.phases, options: [{ v: 1, t: '1 fáza · 230 V' }, { v: 3, t: '3 fázy · 400 V' }] })}
+        ${fieldNum({ name: 'power', label: 'Výkon na štítku motora', de: 'Nennleistung', value: S.power, unit: 'kW' })}
+        ${fieldSelect({ name: 'startMode', label: 'Ako sa motor rozbieha?', de: 'Anlaufart', value: S.startMode, options: [
+          { v: 'direct', t: 'Priamo (stýkač alebo vypínač)' },
+          { v: 'stardelta', t: 'Hviezda-trojuholník' },
           { v: 'softstart', t: 'Softštart' },
           { v: 'vfd', t: 'Frekvenčný menič' },
         ] })}
-        ${fieldNum({ name: 'startMultiple', label: 'Násobok Ia/In zo štítku', value: S.startMultiple, placeholder: 'z dát' })}
-        ${fieldNum({ name: 'targetCos', label: 'Cieľový cos φ (kompenzácia)', value: S.targetCos, placeholder: 'napr. 0,95' })}
       </div>
-      ${details('Prívodný kábel — úbytok pri rozbehu', `<div class="grid">
+      ${details('Presnejšie údaje zo štítku (nepovinné)', `<div class="grid">
+        ${fieldNum({ name: 'cos', label: 'cos φ', value: S.cos, placeholder: 'odhadnem', hint: 'Keď nevyplníš, odhadnem podľa výkonu.' })}
+        ${fieldNum({ name: 'efficiency', label: 'Účinnosť', value: S.efficiency, placeholder: 'odhadnem', hint: 'Napr. 0,9.' })}
+        ${fieldNum({ name: 'U', label: 'Napätie', de: 'Spannung', value: S.U, unit: 'V', placeholder: Number(S.phases) === 3 ? '400' : '230' })}
+        ${fieldNum({ name: 'startMultiple', label: 'Rozbehový prúd — koľkokrát väčší', value: S.startMultiple, placeholder: 'odhadnem', hint: 'Na štítku ako Ia/In, napr. 7.' })}
+        ${fieldNum({ name: 'targetCos', label: 'Kompenzácia — na aký cos φ', value: S.targetCos, placeholder: 'napr. 0,95' })}
+      </div>`)}
+      ${details('Stačí kábel pri rozbehu? (nepovinné)', `<div class="grid">
         ${fieldNum({ name: 'L', label: 'Dĺžka prívodu', value: S.L, unit: 'm' })}
-        ${fieldSelect({ name: 'S', label: 'Prierez', value: S.S, options: [{ v: '', t: '—' }, ...[1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95].map((x) => ({ v: x, t: `${String(x).replace('.', ',')} mm²` }))] })}
-        ${segmented({ name: 'material', label: 'Materiál', value: S.material, options: [{ v: 'Cu', t: 'Cu' }, { v: 'Al', t: 'Al' }] })}
+        ${fieldSelect({ name: 'S', label: 'Hrúbka kábla', value: S.S, options: [{ v: '', t: '—' }, ...[1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95].map((x) => ({ v: x, t: `${String(x).replace('.', ',')} mm²` }))] })}
+        ${segmented({ name: 'material', label: 'Z čoho je kábel?', value: S.material, options: [{ v: 'Cu', t: 'Meď' }, { v: 'Al', t: 'Hliník' }] })}
       </div>`)}
     </form>
     <div id="motor-results"></div>
-    ${details('Prepočty kW / kVA / A', `<div id="conv"></div>`)}
+    ${details('Tabuľka: koľko ampérov berie koľko kW', `<div id="conv"></div>`)}
   `;
   root.querySelectorAll('[data-input]').forEach((i) => {
     const f = () => { S[i.name] = i.value; save(); recompute(root, ctx); };
@@ -54,7 +56,7 @@ export function render(root, ctx) {
   root.querySelectorAll('[data-seg]').forEach((b) => {
     b.addEventListener('click', () => { S[b.dataset.seg] = b.dataset.val; save(); render(root, ctx); });
   });
-  root.addEventListener('click', (e) => {
+  root.onclick = (e) => {
     const a = e.target.closest('[data-action]');
     if (!a || !last) return;
     const meta = { job: S.job, country: store.getCountry(), inputs: summary() };
@@ -66,7 +68,7 @@ export function render(root, ctx) {
       store.saveCalc({ name, job: S.job, module: 'motor', inputs: { ...S }, headline: last.headline, country: store.getCountry() });
       toast('Uložené.');
     }
-  });
+  };
   recompute(root, ctx);
 }
 
@@ -84,20 +86,17 @@ function recompute(root, ctx) {
   last = r;
   let hero = '';
   if (r.In !== undefined) {
-    hero = `<div class="hero">
-      <div class="hero-main">
-        <div class="hero-big">${fmt(r.In, 2)} A</div>
-        ${r.startCurrent ? `<div class="hero-big small-big">rozbeh ${fmt(r.startCurrent, 0)} A</div>` : ''}
-      </div>
-      <dl class="hero-kv">
-        <div><dt>Zdanlivý výkon</dt><dd>${fmt(r.kVA, 2)} kVA</dd></div>
-        <div><dt>cos φ</dt><dd>${fmt(r.cos, 2)}</dd></div>
-        <div><dt>Účinnosť</dt><dd>${fmt(r.efficiency, 3)}</dd></div>
-        ${r.contactor ? `<div><dt>Stýkač AC-3</dt><dd>≈ ${r.contactor} A</dd></div>` : ''}
-        ${r.compensation ? `<div><dt>Kompenzácia</dt><dd>${fmt(r.compensation, 2)} kvar</dd></div>` : ''}
-        ${r.startDrop ? `<div><dt>Úbytok pri rozbehu</dt><dd>${fmt(r.startDrop.percent, 1)} %</dd></div>` : ''}
-        <div><dt>Tepelná ochrana nastav na</dt><dd>${fmt(r.In, 2)} A (zo štítku!)</dd></div>
-      </dl>
+    hero = `<div class="answer">
+      <div class="answer-title">Motor ${String(S.power).replace('.', ',')} kW</div>
+      <div class="answer-row"><span class="answer-k">Berie</span>
+        <span class="answer-v">${fmt(r.In, 1)} A</span><span class="answer-s">pri plnom zaťažení</span></div>
+      ${r.startCurrent ? `<div class="answer-row"><span class="answer-k">Pri štarte</span>
+        <span class="answer-v">${fmt(r.startCurrent, 0)} A</span><span class="answer-s">krátko</span></div>` : ''}
+      ${r.contactor ? `<div class="answer-row"><span class="answer-k">Stýkač</span>
+        <span class="answer-v">${r.contactor} A</span><span class="answer-s">aspoň, AC-3</span></div>` : ''}
+      ${r.compensation ? `<div class="answer-row"><span class="answer-k">Kompenzácia</span>
+        <span class="answer-v">${fmt(r.compensation, 1)} kvar</span></div>` : ''}
+      <p class="answer-note">Ochranu motora nastav na prúd, ktorý je napísaný <b>na štítku</b> — vypočítaných ${fmt(r.In, 1)} A je len kontrola.</p>
     </div>`;
   }
   box.innerHTML = hero + renderResult(r);

@@ -28,6 +28,24 @@ cd /Users/jakubhricisin/Desktop/elektrikar-do-vrecka && node tests/run.mjs
 
 Architektúra a zoznam neoveriteľných dát: [ARCHITEKTURA.md](ARCHITEKTURA.md)
 
+## Jednoduchý a podrobný režim
+
+Aplikácia sa otvára v **jednoduchom režime**: pár otázok bežnou rečou (čo zapájaš,
+aký dlhý kábel, kde bude uložený) a jedna jasná odpoveď — kábel a istič. Kontroly
+sú vypísané vetami („Kábel unesie 23 A — istič má 16 A“), vzorce, normy a všetky
+medzivýsledky sú schované pod **Podrobnosti výpočtu**.
+
+Jednoduchý režim počíta len s tým, čo je na obrazovke: izolácia PVC, sieť TN,
+istič B alebo C, uloženie B2 / A2 / C / D2. Čo si nezadal, vypíše pod výsledkom
+(„Počítal som s tým, že…“).
+
+**Podrobný režim** (Viac → Nastavenia, alebo odkaz pod kalkulačkou) ukáže všetky
+vstupy: cos φ, súčasnosť, Ze/Zs, typ siete, všetkých 9 spôsobov uloženia, poistky,
+harmonické, selektivitu a plný rozpis výsledku.
+
+Pravidlo farby platí v oboch režimoch rovnako — výsledok opretý o neoverené
+tabuľky nie je zelený, v jednoduchom režime sa volá „Vyhovuje — orientačne“.
+
 ---
 
 # ZÁVEREČNÉ ZHRNUTIE

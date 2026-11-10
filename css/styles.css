@@ -445,3 +445,120 @@ h3 { font-size: 16px; margin: 20px 0 8px; }
 a { color: var(--accent); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   JEDNODUCHÝ VZHĽAD (v1.1) — menej vecí naraz, väčšie odpovede
+   ═══════════════════════════════════════════════════════════════ */
+
+/* hlavička: lupa · názov · norma */
+.top { gap: 10px; }
+.brand-name { flex: 1; text-align: left; font-size: 18px; font-weight: 800; color: var(--fg); text-decoration: none; }
+.norm-pill { display: flex; border: 2px solid var(--line); border-radius: 12px; overflow: hidden; flex: none; }
+.norm-pill button {
+  min-height: 42px; padding: 0 10px; border: 0; background: var(--bg2); color: var(--fg2);
+  font-size: 13.5px; font-weight: 800; cursor: pointer; white-space: nowrap;
+}
+.norm-pill button.on { background: var(--accent); color: var(--accent-fg); }
+
+.disclaimer {
+  margin: 0; padding: 5px 12px; border: 0; border-radius: 0; text-align: center;
+  background: var(--bg3); color: var(--fg2); font-size: 12px; line-height: 1.35;
+}
+
+main { padding-top: 4px; }
+
+.crumb { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px 0 10px; font-weight: 800; font-size: 15px; text-decoration: none; }
+.crumb-title { font-size: 15px; font-weight: 800; color: var(--fg2); }
+
+/* spodná lišta: štyri veľké položky */
+.bottom { grid-template-columns: repeat(4, 1fr); }
+.nav-item { font-size: 12.5px; min-height: 58px; gap: 3px; }
+.nav-ico { font-size: 20px; }
+#app { padding-bottom: calc(58px + 26px + env(safe-area-inset-bottom)); }
+
+/* výber úlohy */
+.mode-btn { min-height: 52px; font-size: 13.5px; font-weight: 800; color: var(--fg2); }
+.mode-btn.on { color: var(--fg); }
+.mode-sub { font-size: 14.5px; margin: 2px 0 14px; }
+
+/* otázky a dlaždice */
+.q { margin: 16px 0; }
+.q-label { display: block; font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+.field-label { font-size: 15px; font-weight: 800; }
+.tiles { display: grid; gap: 8px; }
+.tiles-2 { grid-template-columns: 1fr 1fr; }
+.tiles-4 { grid-template-columns: 1fr 1fr; }
+@media (min-width: 560px) { .tiles-4 { grid-template-columns: repeat(4, 1fr); } }
+.tile {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px;
+  min-height: 62px; padding: 10px 12px; text-align: left; cursor: pointer; text-decoration: none;
+  border: 2px solid var(--line); border-radius: 14px; background: var(--bg2); color: var(--fg2);
+}
+.tile b { font-size: 15.5px; color: var(--fg); line-height: 1.25; }
+.tile span { font-size: 12.5px; line-height: 1.3; }
+.tile.on { border-color: var(--accent); background: var(--bg3); }
+.tile.place .mico { width: 64px; height: 36px; margin-bottom: 4px; }
+.tile.link { min-height: 84px; }
+.tile.link:active { background: var(--bg3); }
+.tile-ico { font-size: 22px !important; color: var(--accent); font-weight: 900; }
+.tile.wide { width: 100%; }
+.tile.wide span { font-size: 13.5px; line-height: 1.45; margin-top: 4px; }
+
+/* odpoveď */
+.answer {
+  margin: 18px 0 12px; padding: 14px 16px; border-radius: 16px;
+  background: var(--bg2); border: 2px solid var(--accent);
+}
+.answer-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--fg2); margin-bottom: 6px; }
+.answer-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.answer-row:last-of-type { border-bottom: 0; }
+.answer-k { width: 82px; flex: none; font-size: 14px; font-weight: 700; color: var(--fg2); }
+.answer-v { font-size: 27px; font-weight: 900; letter-spacing: -.3px; line-height: 1.15; }
+.answer-s { font-size: 13.5px; color: var(--fg2); }
+.answer-note { margin: 10px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--fg2); }
+.answer-warn { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; font-size: 13.5px; line-height: 1.45; background: var(--orange-bg); border-left: 4px solid var(--orange); }
+.answer .lens { margin-top: 8px; }
+.answer .len-val { font-size: 19px; }
+.answer .table-wrap { margin: 0; }
+.tbl.big { font-size: 15.5px; }
+.tbl.big th { font-size: 12px; }
+.tbl.big td { padding: 10px 8px; }
+
+/* jednoduchý výsledok */
+.result.simple .res-head { padding: 10px 14px; }
+.result.simple .res-badge { width: 32px; height: 32px; font-size: 18px; }
+.result.simple .res-label { margin: 0; font-size: 17px; }
+.checks.plain { margin: 12px 0 10px; gap: 9px; }
+.checks.plain .chk { font-size: 15.5px; align-items: center; }
+.soft-note {
+  margin: 10px 14px; padding: 9px 12px; border-radius: 10px; font-size: 13.5px; line-height: 1.45;
+  background: var(--bg3); color: var(--fg2);
+}
+.soft-note.warn { background: var(--orange-bg); color: var(--fg); }
+.soft-note ul { margin: 6px 0 0; padding-left: 20px; }
+main > .soft-note { margin: 10px 0; }
+.used-with { margin: 8px 14px; font-size: 12.5px; line-height: 1.5; color: var(--fg2); }
+.todo { margin: 10px 14px; padding: 10px 12px; border-radius: 10px; background: var(--blue-bg); border-left: 4px solid var(--blue); font-size: 14.5px; }
+.todo ul { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 8px; }
+.result.simple .res-headline { font-size: 16.5px; margin: 12px 14px; }
+.result.simple .box .res-headline { margin: 0 0 6px; }
+.result.simple .box .res-reason { margin: 0 0 10px; }
+.result.simple .box .checks { padding: 0; }
+.result.simple .box .box { margin: 10px 0; }
+.result.simple .box .banner { margin: 10px 0; }
+
+/* prepínač režimu */
+.mode-toggle { text-align: center; margin: 22px 0 6px; }
+.link-btn { min-height: 46px; padding: 0 12px; border: 0; background: none; color: var(--fg2); font-size: 14px; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+/* nastavenia */
+.setting {
+  display: flex; gap: 12px; align-items: center; justify-content: space-between;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); padding: 12px 14px; margin: 8px 0;
+}
+.setting.col { flex-direction: column; align-items: stretch; }
+.setting p { margin: 2px 0 0; }
+
+form > .grid { margin-bottom: 12px; }
+form > .grid:empty { display: none; }

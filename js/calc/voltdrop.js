@@ -94,7 +94,9 @@ export function voltageDrop(i, lookup, r = newResult('Úbytok napätia')) {
     const lim = num(i.limitPercent, 'povolený úbytok', { min: 0.1, max: 50 });
     const ok = d.percent <= lim + 1e-9;
     check(r, `Úbytok ≤ ${fmt(lim, 1)} %`, ok,
-      `${fmt(d.percent, 2)} % ${ok ? '≤' : '>'} ${fmt(lim, 1)} %`);
+      `${fmt(d.percent, 2)} % ${ok ? '≤' : '>'} ${fmt(lim, 1)} %`,
+      ok ? `Úbytok napätia ${fmt(d.percent, 1)} % — povolené ${fmt(lim, 1)} %`
+        : `Úbytok napätia ${fmt(d.percent, 1)} % je nad povolené ${fmt(lim, 1)} %`);
     r.limitPercent = lim;
   }
 

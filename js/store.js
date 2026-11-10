@@ -10,6 +10,7 @@ const DEFAULTS = {
   theme: 'auto',
   lastRoute: '#/kalkulacka',
   settings: {
+    detail: false,           // false = jednoduchý režim (predvolený), true = podrobný
     dropLimitOverride: {},   // { DE: {power: 3, ...}, SK: {...} }
     cFactor: '',             // prázdne = z dát
     defaultZe: '',
@@ -59,6 +60,10 @@ export function setSetting(key, value) {
   persist();
   emit();
 }
+
+/* ─────────── jednoduchý / podrobný režim ─────────── */
+export function isDetail() { return !!state.settings.detail; }
+export function setDetail(v) { setSetting('detail', !!v); }
 
 /* ─────────── krajina / norma ─────────── */
 export function getCountry() { return state.country; }

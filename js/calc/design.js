@@ -204,11 +204,13 @@ export function maxLengths(i, lookup, r = newResult('Maximálna dĺžka')) {
     r.headline = final.L <= 0
       ? `Nevyhovuje ani pri nulovej dĺžke — obmedzuje: ${final.label}`
       : `Max. ${fmt(final.L, 1)} m — obmedzuje: ${final.label}`;
-    if (final.L <= 0) check(r, 'Existuje vyhovujúca dĺžka', false, `obmedzuje ${final.label}`);
+    if (final.L <= 0) check(r, 'Existuje vyhovujúca dĺžka', false, `obmedzuje ${final.label}`,
+      'S týmto istením to nevyjde pri žiadnej dĺžke');
   } else {
     missing(r, 'nedá sa určiť žiadna z troch maximálnych dĺžok');
   }
-  if (byShort.impossible) check(r, 'Skratová odolnosť kábla', false, 'kábel neodolá skratu pri tomto istení');
+  if (byShort.impossible) check(r, 'Skratová odolnosť kábla', false, 'kábel neodolá skratu pri tomto istení',
+    'Kábel nevydrží skrat — treba väčší prierez');
 
   return r;
 }
@@ -233,7 +235,7 @@ export function modeA(i, lookup) {
     if (In === null) {
       r.status = 'fail';
       const maxIn = ratings.value[ratings.value.length - 1];
-      r.headline = `Prúd záťaže ${fmt(load.Ib, 1)} A presahuje najväčšie istenie v rade ${device} (${maxIn} A).`;
+      r.headline = `Spotrebič berie ${fmt(load.Ib, 0)} A — to je viac, než zvládne najväčší istič ${device} (${maxIn} A).`;
       note(r, 'Rozdeľ záťaž na viac obvodov alebo použi istenie z vyššieho radu (NH).');
       r.fixes = [
         {
@@ -434,7 +436,10 @@ export function modeB(i, lookup) {
       const Lgiven = num(i.L, 'dĺžka', { min: 0.1 });
       if (ml.maxLength !== undefined) {
         check(r, `Zadaná dĺžka ${fmt(Lgiven, 1)} m je v limite`, Lgiven <= ml.maxLength,
-          `max ${fmt(ml.maxLength, 1)} m (obmedzuje ${ml.limitedBy})`);
+          `max ${fmt(ml.maxLength, 1)} m (obmedzuje ${ml.limitedBy})`,
+          Lgiven <= ml.maxLength
+            ? `Dĺžka ${fmt(Lgiven, 0)} m je v poriadku — najviac ${fmt(ml.maxLength, 0)} m`
+            : `Dĺžka ${fmt(Lgiven, 0)} m je priveľa — najviac ${fmt(ml.maxLength, 0)} m`);
       }
     }
     return r;
@@ -488,7 +493,10 @@ export function modeC(i, lookup) {
     if (i.L !== undefined && i.L !== '' && i.L !== null && ml.maxLength !== undefined) {
       const Lg = num(i.L, 'dĺžka', { min: 0.1 });
       check(r, `Plánovaná dĺžka ${fmt(Lg, 1)} m`, Lg <= ml.maxLength,
-        `max ${fmt(ml.maxLength, 1)} m (obmedzuje ${ml.limitedBy})`);
+        `max ${fmt(ml.maxLength, 1)} m (obmedzuje ${ml.limitedBy})`,
+        Lg <= ml.maxLength
+          ? `Dĺžka ${fmt(Lg, 0)} m je v poriadku — najviac ${fmt(ml.maxLength, 0)} m`
+          : `Dĺžka ${fmt(Lg, 0)} m je priveľa — najviac ${fmt(ml.maxLength, 0)} m`);
       r.plannedLength = Lg;
     }
 

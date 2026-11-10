@@ -25,9 +25,9 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {}
 export const title = 'Fotovoltika';
 
 const TABS = [
-  { v: 'string', t: 'Reťazec a striedač' },
-  { v: 'dc', t: 'DC kábel' },
-  { v: 'ac', t: 'AC kábel' },
+  { v: 'string', t: 'Koľko panelov?' },
+  { v: 'dc', t: 'Kábel od panelov' },
+  { v: 'ac', t: 'Kábel od striedača' },
 ];
 
 export function render(root, ctx) {
@@ -44,7 +44,7 @@ export function render(root, ctx) {
     const f = () => { S[i.name] = i.value; save(); recompute(root, ctx); };
     i.addEventListener('input', f); i.addEventListener('change', f);
   });
-  root.addEventListener('click', (e) => {
+  root.onclick = (e) => {
     const a = e.target.closest('[data-action]');
     if (!a || !last) return;
     const meta = { job: S.job, country: store.getCountry(), inputs: {} };
@@ -56,7 +56,7 @@ export function render(root, ctx) {
       store.saveCalc({ name, job: S.job, module: 'pv', inputs: { ...S }, headline: last.headline, country: store.getCountry() });
       toast('Uložené.');
     }
-  });
+  };
   recompute(root, ctx);
 }
 
@@ -64,32 +64,36 @@ const SECTIONS = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50];
 
 function fields() {
   if (S.tab === 'string') {
-    return `<div class="grid">
-      ${fieldNum({ name: 'uocStc', label: 'Uoc panelu (STC)', de: 'Leerlaufspannung', value: S.uocStc, unit: 'V', hint: 'Z datasheetu panelu' })}
-      ${fieldNum({ name: 'iscStc', label: 'Isc panelu (STC)', de: 'Kurzschlussstrom', value: S.iscStc, unit: 'A' })}
-      ${fieldNum({ name: 'vmpStc', label: 'Vmp panelu (STC)', de: 'MPP-Spannung', value: S.vmpStc, unit: 'V' })}
-      ${fieldNum({ name: 'tempCoeff', label: 'Teplotný súčiniteľ Uoc', value: S.tempCoeff, unit: '%/K', placeholder: '−0,30', hint: 'VŽDY z datasheetu. Nezadané = predvolená typická hodnota.' })}
-      ${fieldNum({ name: 'minTemp', label: 'Najnižšia návrhová teplota', value: S.minTemp, unit: '°C', placeholder: store.getCountry() === 'DE' ? '−10' : '−15', hint: 'Nezadané = predvolená podľa krajiny (PREDPOKLAD)' })}
-      ${fieldNum({ name: 'modules', label: 'Počet panelov v reťazci', value: S.modules })}
-      ${fieldNum({ name: 'invMaxV', label: 'Max. DC napätie striedača', value: S.invMaxV, unit: 'V' })}
-      ${fieldNum({ name: 'invMaxA', label: 'Max. prúd vstupu striedača', value: S.invMaxA, unit: 'A' })}
-      ${fieldNum({ name: 'mppMin', label: 'Dolná hranica MPP', value: S.mppMin, unit: 'V' })}
-    </div>`;
+    return `<p class="mode-sub">Koľko panelov môžem zapojiť za sebou, aby v mraze nezničili striedač?</p>
+    <div class="grid">
+      ${fieldNum({ name: 'uocStc', label: 'Napätie panelu naprázdno (Uoc)', de: 'Leerlaufspannung', value: S.uocStc, unit: 'V', hint: 'Zo štítku alebo datasheetu panelu.' })}
+      ${fieldNum({ name: 'iscStc', label: 'Skratový prúd panelu (Isc)', de: 'Kurzschlussstrom', value: S.iscStc, unit: 'A' })}
+      ${fieldNum({ name: 'invMaxV', label: 'Najvyššie napätie striedača', value: S.invMaxV, unit: 'V', hint: 'V datasheete ako „max. DC voltage“.' })}
+      ${fieldNum({ name: 'modules', label: 'Koľko panelov chcem v rade', value: S.modules })}
+    </div>
+    ${details('Presnejšie údaje (nepovinné)', `<div class="grid">
+      ${fieldNum({ name: 'tempCoeff', label: 'Teplotný súčiniteľ Uoc', value: S.tempCoeff, unit: '%/K', placeholder: '−0,30', hint: 'Z datasheetu panelu. Keď nevyplníš, počítam s bežnou hodnotou.' })}
+      ${fieldNum({ name: 'minTemp', label: 'Najnižšia teplota v zime', value: S.minTemp, unit: '°C', placeholder: store.getCountry() === 'DE' ? '−10' : '−15' })}
+      ${fieldNum({ name: 'vmpStc', label: 'Pracovné napätie panelu (Vmp)', de: 'MPP-Spannung', value: S.vmpStc, unit: 'V' })}
+      ${fieldNum({ name: 'mppMin', label: 'Od akého napätia striedač pracuje', value: S.mppMin, unit: 'V', hint: 'Dolná hranica MPP.' })}
+      ${fieldNum({ name: 'invMaxA', label: 'Najvyšší prúd vstupu striedača', value: S.invMaxA, unit: 'A' })}
+    </div>`)}`;
   }
   if (S.tab === 'dc') {
-    return `<div class="grid">
-      ${fieldNum({ name: 'dcCurrent', label: 'Prúd reťazca (Impp)', value: S.dcCurrent, unit: 'A' })}
-      ${fieldNum({ name: 'dcU', label: 'Napätie reťazca (Umpp)', value: S.dcU, unit: 'V' })}
-      ${fieldNum({ name: 'dcL', label: 'Dĺžka (jedna cesta)', value: S.dcL, unit: 'm' })}
-      ${fieldSelect({ name: 'dcS', label: 'Prierez DC kábla', value: S.dcS, options: SECTIONS.map((x) => ({ v: x, t: `${String(x).replace('.', ',')} mm²` })) })}
+    return `<p class="mode-sub">Koľko napätia sa stratí v kábli medzi panelmi a striedačom?</p>
+    <div class="grid">
+      ${fieldNum({ name: 'dcCurrent', label: 'Prúd z panelov (Impp)', value: S.dcCurrent, unit: 'A' })}
+      ${fieldNum({ name: 'dcU', label: 'Napätie radu panelov (Umpp)', value: S.dcU, unit: 'V' })}
+      ${fieldNum({ name: 'dcL', label: 'Dĺžka kábla (jedným smerom)', value: S.dcL, unit: 'm' })}
+      ${fieldSelect({ name: 'dcS', label: 'Hrúbka kábla', value: S.dcS, options: SECTIONS.map((x) => ({ v: x, t: `${String(x).replace('.', ',')} mm²` })) })}
     </div>`;
   }
-  return `<div class="grid">
-    ${segmented({ name: 'acPhases', label: 'Striedač', value: S.acPhases, options: [{ v: 1, t: '1f' }, { v: 3, t: '3f' }] })}
-    ${fieldNum({ name: 'acPower', label: 'AC výkon striedača', value: S.acPower, unit: 'kW' })}
-    ${fieldNum({ name: 'acL', label: 'Dĺžka k rozvádzaču', value: S.acL, unit: 'm' })}
-    ${fieldSelect({ name: 'acS', label: 'Prierez', value: S.acS, options: SECTIONS.map((x) => ({ v: x, t: `${String(x).replace('.', ',')} mm²` })) })}
-    ${fieldNum({ name: 'acCos', label: 'cos φ striedača', value: S.acCos, placeholder: '1,00' })}
+  return `<p class="mode-sub">Koľko napätia sa stratí v kábli medzi striedačom a rozvádzačom?</p>
+  <div class="grid">
+    ${segmented({ name: 'acPhases', label: 'Striedač je', value: S.acPhases, options: [{ v: 1, t: '1-fázový' }, { v: 3, t: '3-fázový' }] })}
+    ${fieldNum({ name: 'acPower', label: 'Výkon striedača', value: S.acPower, unit: 'kW' })}
+    ${fieldNum({ name: 'acL', label: 'Dĺžka kábla k rozvádzaču', value: S.acL, unit: 'm' })}
+    ${fieldSelect({ name: 'acS', label: 'Hrúbka kábla', value: S.acS, options: SECTIONS.map((x) => ({ v: x, t: `${String(x).replace('.', ',')} mm²` })) })}
   </div>`;
 }
 
@@ -104,24 +108,37 @@ function recompute(root, ctx) {
       mppMin: S.mppMin, country: c,
     }, ctx.lookup);
     if (r.uocCold) {
-      hero = `<div class="hero">
-        <div class="hero-big">${fmt(r.uocCold, 1)} V / panel</div>
-        <p class="hero-sub">pri ${r.minTemp} °C · návrhový prúd ${fmt(r.iscDesign, 2)} A</p>
-        <dl class="hero-kv">
-          ${r.maxModules ? `<div><dt>Max. panelov v reťazci</dt><dd>${r.maxModules}</dd></div>` : ''}
-          ${r.stringVoltage ? `<div><dt>Napätie reťazca pri mraze</dt><dd>${fmt(r.stringVoltage, 0)} V</dd></div>` : ''}
-          ${r.stringFuse ? `<div><dt>Poistka reťazca (gPV)</dt><dd>${r.stringFuse} A</dd></div>` : ''}
-        </dl>
+      hero = `<div class="answer">
+        <div class="answer-title">Do jedného radu</div>
+        ${r.maxModules ? `<div class="answer-row"><span class="answer-k">Najviac</span>
+          <span class="answer-v">${r.maxModules} panelov</span></div>` : ''}
+        ${r.stringVoltage ? `<div class="answer-row"><span class="answer-k">Tvoj rad</span>
+          <span class="answer-v">${fmt(r.stringVoltage, 0)} V</span><span class="answer-s">v mraze ${r.minTemp} °C</span></div>` : ''}
+        <p class="answer-note">V mraze má každý panel ${fmt(r.uocCold, 1)} V namiesto ${String(S.uocStc).replace('.', ',')} V.
+          Kábel a poistky počítaj na ${fmt(r.iscDesign, 1)} A.</p>
       </div>`;
     }
   } else if (S.tab === 'dc') {
     r = pvDcCable({ current: S.dcCurrent, L: S.dcL, S: S.dcS, U: S.dcU, material: 'Cu' }, ctx.lookup);
-    hero = `<div class="hero"><div class="hero-big">${fmt(r.value, 2)} V</div>
-      <p class="hero-sub">${fmt(r.percent, 2)} % úbytok na DC strane</p></div>`;
+    if (r.percent !== undefined) {
+      hero = `<div class="answer">
+        <div class="answer-title">V kábli sa stratí</div>
+        <div class="answer-row"><span class="answer-k">Úbytok</span>
+          <span class="answer-v">${fmt(r.percent, 1)} %</span><span class="answer-s">${fmt(r.value, 1)} V</span></div>
+        <p class="answer-note">Na strane panelov použi len solárny kábel (H1Z2Z2-K), nie bežný NYM.</p>
+      </div>`;
+    }
   } else {
-    r = pvAcCable({ power: S.acPower, phases: Number(S.acPhases), L: S.acL, S: S.acS, cos: S.acCos, material: 'Cu', country: c }, ctx.lookup);
-    hero = `<div class="hero"><div class="hero-big">${fmt(r.I, 2)} A</div>
-      <p class="hero-sub">úbytok ${fmt(r.percent, 2)} % (${fmt(r.value, 2)} V)</p></div>`;
+    r = pvAcCable({ power: S.acPower, phases: Number(S.acPhases), L: S.acL, S: S.acS, cos: '', material: 'Cu', country: c }, ctx.lookup);
+    if (r.percent !== undefined) {
+      hero = `<div class="answer">
+        <div class="answer-title">Striedač ${String(S.acPower).replace('.', ',')} kW</div>
+        <div class="answer-row"><span class="answer-k">Prúd</span>
+          <span class="answer-v">${fmt(r.I, 1)} A</span></div>
+        <div class="answer-row"><span class="answer-k">Úbytok</span>
+          <span class="answer-v">${fmt(r.percent, 1)} %</span><span class="answer-s">${fmt(r.value, 1)} V</span></div>
+      </div>`;
+    }
   }
   last = r;
   box.innerHTML = hero + renderResult(r);

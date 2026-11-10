@@ -10,23 +10,20 @@ export const title = 'Tabuľky a značenie';
 
 export function render(root) {
   root.innerHTML = `
-    <div class="banner warn">
-      <strong>Všetko v tejto časti je NEOVERENÉ a orientačné.</strong>
-      ${esc(REFERENCE_SOURCE.note)}
-    </div>
+    <p class="soft-note">Tabuľky sú na rýchlu orientáciu. Pred použitím si hodnotu over v norme alebo u výrobcu.</p>
 
-    ${details('Farby vodičov a staré značenia', colors(), true)}
-    ${details('Typy káblov — DE ↔ SK a kde sa smú použiť', cables())}
-    ${details('Výber podľa typu miesta', places())}
-    ${details('Charakteristiky ističov a poistiek', breakers())}
-    ${details('Prúdové chrániče — typy a citlivosti', rcds())}
+    ${details('Čo kam patrí — kúpeľňa, stavba, vonku…', places())}
+    ${details('Farby vodičov a staré značenia', colors())}
+    ${details('Káble — nemecké a slovenské názvy', cables())}
+        ${details('Ističe B, C, D a poistky', breakers())}
+    ${details('Prúdové chrániče (FI)', rcds())}
     ${details('Krytie IP a IK', ipik())}
     ${details('Zóny v kúpeľni', zones())}
-    ${details('Schematické značky', symbols())}
+    ${details('Značky v schémach', symbols())}
     ${details('Svorky stýkačov a relé', terminals())}
     ${details('Uťahovacie momenty', torques())}
-    ${details('Typy sietí TN / TT / IT', nets())}
-    ${details('Spôsoby uloženia A1 – F', methods())}
+    ${details('Siete TN / TT / IT', nets())}
+    ${details('Uloženie kábla A1 – F', methods())}
   `;
 }
 

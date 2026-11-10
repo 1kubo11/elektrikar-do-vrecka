@@ -71,7 +71,7 @@ export function render(root, ctx) {
     render(root, ctx);
   });
 
-  root.addEventListener('change', (e) => {
+  root.onchange = (e) => {
     const t = e.target.closest('[data-verify]');
     if (t) {
       store.setDatasetVerified(t.dataset.verify, t.checked);
@@ -100,7 +100,7 @@ export function render(root, ctx) {
         v.classList.add('edited');
       }
     }
-  });
+  };
 
   root.querySelectorAll('[data-filter]').forEach((inp) => {
     inp.addEventListener('input', () => {

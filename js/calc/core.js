@@ -52,9 +52,12 @@ export function note(r, text) {
   return r;
 }
 
-/** Kontrola s vlastným stavom. ok=true/false, alebo null = nedá sa overiť. */
-export function check(r, label, ok, detail = '') {
-  r.checks.push({ label, ok, detail });
+/**
+ * Kontrola s vlastným stavom. ok=true/false, alebo null = nedá sa overiť.
+ * plain = veta bežnou rečou pre jednoduchý režim; false = v jednoduchom režime skryť.
+ */
+export function check(r, label, ok, detail = '', plain) {
+  r.checks.push({ label, ok, detail, plain });
   if (ok === false) r.status = 'fail';
   else if (ok === null && r.status === 'ok') r.status = 'warn';
   return r;
@@ -78,14 +81,15 @@ export function missing(r, what) {
  * tabuľkové hodnoty sú označené ako overené A nechýba žiadny vstup.
  */
 export function grade(r) {
-  if (r.status === 'fail') return { color: 'red', label: 'Nevyhovuje', reason: reasonFail(r) };
+  if (r.status === 'fail') return { kind: 'fail', color: 'red', label: 'Nevyhovuje', reason: reasonFail(r) };
 
   const unverified = r.refs.filter((x) => !x.verified);
   if (r.missing.length) {
-    return { color: 'orange', label: 'Chýba údaj', reason: `Chýba: ${r.missing.join(', ')}` };
+    return { kind: 'missing', color: 'orange', label: 'Chýba údaj', reason: `Chýba: ${r.missing.join(', ')}` };
   }
   if (unverified.length) {
     return {
+      kind: 'unverified',
       color: 'orange',
       label: 'Vyhovuje — ale na neoverených dátach',
       reason:
@@ -94,8 +98,8 @@ export function grade(r) {
         `Skontroluj ich v Overenie dát a označ ako overené.`,
     };
   }
-  if (r.status === 'warn') return { color: 'orange', label: 'Na hrane', reason: reasonWarn(r) };
-  return { color: 'green', label: 'Vyhovuje', reason: 'Všetky kontroly prešli na overených dátach.' };
+  if (r.status === 'warn') return { kind: 'warn', color: 'orange', label: 'Na hrane', reason: reasonWarn(r) };
+  return { kind: 'ok', color: 'green', label: 'Vyhovuje', reason: 'Všetky kontroly prešli na overených dátach.' };
 }
 
 function reasonFail(r) {

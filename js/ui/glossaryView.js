@@ -29,7 +29,7 @@ export function render(root) {
   }));
   root.querySelector('[data-fav-filter]').addEventListener('click', () => { onlyFav = !onlyFav; render(root); });
 
-  root.addEventListener('click', (e) => {
+  root.onclick = (e) => {
     const f = e.target.closest('[data-fav]');
     if (f) {
       const on = store.toggleFavourite({ type: 'glossary', id: f.dataset.fav, label: f.dataset.label });
@@ -39,7 +39,7 @@ export function render(root) {
     }
     const s = e.target.closest('[data-say]');
     if (s) say(s.dataset.say);
-  });
+  };
   list(root);
 }
 

@@ -2,11 +2,116 @@
 
 import { esc, details } from './dom.js';
 import { grade, fmt } from '../calc/core.js';
+import * as store from '../store.js';
 
 const COLOR_ICON = { green: '✓', orange: '!', red: '✕' };
 
+/**
+ * Predvolený údaj bežnou rečou. Čo sa nedá povedať jednoducho, vráti null
+ * a zostane vypísané v podrobnostiach (nič sa nestráca).
+ */
+function plainDefault(d) {
+  const w = d.what;
+  if (w.startsWith('teplota okolia')) return `je tam do ${d.value}`;
+  if (w.startsWith('teplota zeme')) return `zem má ${d.value}`;
+  if (w.startsWith('počet súbežných')) return 'kábel ide sám';
+  if (w.startsWith('povolený úbytok')) return `napätie smie klesnúť najviac o ${d.value}`;
+  if (w.startsWith('Ze')) return 'sieť je bežná (odhad — nemeral si ju)';
+  if (w === 'izolácia') return 'kábel má PVC izoláciu';
+  if (w.startsWith('prúd pre úbytok')) return 'obvod pôjde naplno';
+  if (w === 'cos φ' && /orientačn/.test(d.why)) return 'cos φ som odhadol';
+  if (w.startsWith('účinnosť')) return 'účinnosť som odhadol';
+  if (w.startsWith('násobok rozbehového')) return `pri štarte berie ${d.value}`;
+  if (w.startsWith('teplotný súčiniteľ')) return 'panel je bežný kremíkový';
+  if (w.startsWith('najnižšia návrhová')) return `v zime bude najmenej ${d.value}`;
+  return null;
+}
+
+/**
+ * JEDNODUCHÝ VÝSLEDOK — jedna jasná odpoveď, pár viet bežnou rečou
+ * a všetko ostatné schované pod „Podrobnosti výpočtu“.
+ */
+function renderSimple(r) {
+  const g = grade(r);
+  const checks = (r.checks || []).filter((c) => c.plain !== false);
+  const hasFailedCheck = checks.some((c) => c.ok === false);
+
+  const label = g.kind === 'fail' ? (hasFailedCheck || r.fixes?.length ? 'Nevyhovuje' : 'Skontroluj zadanie')
+    : g.kind === 'missing' ? 'Chýba údaj'
+      : g.kind === 'unverified' ? 'Vyhovuje — orientačne'
+        : g.kind === 'warn' ? 'Ešte skontroluj'
+          : 'Vyhovuje';
+
+  const checkList = checks.length ? `<ul class="checks plain">
+    ${checks.map((c) => {
+      const cls = c.ok === true ? 'ok' : c.ok === false ? 'bad' : 'unk';
+      const ico = c.ok === true ? '✓' : c.ok === false ? '✕' : '?';
+      return `<li class="chk ${cls}"><span class="chk-ico">${ico}</span><span>${esc(c.plain || c.label)}</span></li>`;
+    }).join('')}
+  </ul>` : '';
+
+  /* pri chybe zadania (napr. chýba dĺžka) ukáž priamo správu */
+  const message = g.kind === 'fail' && !hasFailedCheck && r.headline
+    ? `<p class="res-headline">${esc(r.headline)}</p>` : '';
+
+  const miss = r.missing?.length ? `<div class="soft-note warn">
+    <b>Toto mi chýba, bez toho to neviem spočítať:</b>
+    <ul>${r.missing.map((m) => `<li>${esc(m)}</li>`).join('')}</ul></div>` : '';
+
+  /* čo s tým — len keď nevyhovuje, najprv riešenia, ktoré naozaj pomôžu */
+  let fixes = '';
+  if (g.kind === 'fail' && r.fixes?.length) {
+    const sorted = [...r.fixes].sort((a, b) => (b.ok === true) - (a.ok === true)).slice(0, 3);
+    fixes = `<div class="todo">
+      <b>Čo s tým:</b>
+      <ul>${sorted.map((f) => `<li><strong>${esc(f.label)}</strong>${f.ok === true ? ' — vyhovuje' : ''}<br>
+        <span class="small muted">${esc(f.result)}</span></li>`).join('')}</ul>
+    </div>`;
+  }
+
+  const unverified = g.kind === 'unverified' ? `<p class="soft-note">
+    Tabuľky v aplikácii ešte nie sú skontrolované podľa normy, preto ber výsledok ako orientačný.
+    <a href="#/data">Skontrolovať tabuľky</a></p>` : '';
+
+  const plainDefs = (r.defaults || []).map(plainDefault).filter(Boolean);
+  const hiddenDefs = (r.defaults || []).length - plainDefs.length;
+  const defs = r.defaults?.length ? `<p class="used-with">
+    <b>Počítal som s tým, že:</b> ${plainDefs.map(esc).join(' · ')}${
+      hiddenDefs > 0 ? `${plainDefs.length ? ' · ' : ''}a ${hiddenDefs} ďalších bežných hodnôt (v podrobnostiach)` : ''}</p>` : '';
+
+  const full = `
+    ${r.headline ? `<p class="res-headline">${esc(r.headline)}</p>` : ''}
+    <p class="res-reason">${esc(g.reason)}</p>
+    ${renderChecks(r)}
+    ${renderDefaults(r)}
+    ${renderSteps(r)}
+    ${renderRefs(r)}
+    ${renderNotes(r)}
+    ${renderFixes(r)}`;
+
+  return `<section class="result simple res-${g.color}">
+    <header class="res-head">
+      <span class="res-badge">${COLOR_ICON[g.color]}</span>
+      <div class="res-head-text"><p class="res-label">${esc(label)}</p></div>
+    </header>
+    ${message}
+    ${checkList}
+    ${miss}
+    ${fixes}
+    ${unverified}
+    ${defs}
+    ${details('Podrobnosti výpočtu', full)}
+    <div class="res-actions">
+      <button type="button" class="btn" data-action="save-calc">Uložiť</button>
+      <button type="button" class="btn" data-action="share-text">Zdieľať</button>
+      <button type="button" class="btn" data-action="share-pdf">PDF</button>
+    </div>
+  </section>`;
+}
+
 export function renderResult(r, { title, shareId } = {}) {
   if (!r) return '';
+  if (!store.isDetail()) return renderSimple(r);
   const g = grade(r);
 
   return `<section class="result res-${g.color}" data-result-id="${esc(shareId || '')}">

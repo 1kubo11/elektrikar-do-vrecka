@@ -15,15 +15,16 @@ function buildIndex() {
   const add = (section, route, label, text, extra = '') => idx.push({ section, route, label, text, extra });
 
   add('Kalkulačka', '#/kalkulacka', 'Kábel a istenie — návrh prierezu, istenia, úbytok, odpojenie, skrat', 'kábel istenie prierez úbytok napätia odpojenie skrat Iz In Ib zs ik kalkulačka návrh dĺžka');
-  add('Kalkulačka', '#/kalkulacka', 'Režim C — do akej dĺžky to vyhovuje', 'maximálna dĺžka limit úbytok odpojenie skratová odolnosť režim c');
-  add('Kalkulačka', '#/kalkulacka', 'Režim D — rýchla tabuľka istení a dĺžok', 'rýchla tabuľka istenie dĺžky režim d prehľad');
+  add('Kalkulačka', '#/kalkulacka', 'Aká dĺžka? — ako ďaleko môžem ísť s káblom', 'maximálna dĺžka limit úbytok odpojenie skratová odolnosť režim c');
+  add('Kalkulačka', '#/kalkulacka', 'Tabuľka káblov, ističov a dĺžok', 'rýchla tabuľka istenie dĺžky režim d prehľad');
   add('Motory', '#/motory', 'Motory — prúd, rozbeh, stýkač, kompenzácia', 'motor kw kva ampér rozbeh hviezda trojuholník softštart menič stýkač ac-3 kompenzácia kvar účinník tepelná ochrana');
   add('Fotovoltika', '#/fv', 'FV — reťazec, Uoc pri mraze, limity striedača', 'fotovoltika fv panel reťazec string uoc isc impp striedač mppt poistka gpv spd dc kábel');
   add('Fotovoltika', '#/fv', 'FV — AC kábel striedač → rozvádzač', 'ac kábel striedač rozvádzač úbytok fv');
   add('Wallbox', '#/wallbox', 'Wallbox — kábel, istenie, RCD, ohlásenie', 'wallbox nabíjanie auto elektromobil 3,7 7,4 11 22 kw rcd typ b 6 ma rdc-dd ohlásenie vnb marktstammdatenregister');
   add('Tabuľky', '#/tabulky', 'Tabuľky a značenie', 'tabuľky značenie farby vodičov ip ik zóny kúpeľňa značky svorky momenty');
   add('Slovník', '#/slovnik', 'Slovník SK–DE', 'slovník nemčina preklad výslovnosť vety');
-  add('Overenie dát', '#/data', 'Overenie dát — kontrola a oprava normových hodnôt', 'overenie dáta normy tabuľky export import neoverené verified');
+  add('Viac', '#/viac', 'Nastavenia — podrobný režim, vzhľad', 'nastavenia podrobný jednoduchý režim tmavý svetlý vzhľad téma');
+  add('Overenie dát', '#/data', 'Skontrolovať tabuľky podľa normy', 'overenie dáta normy tabuľky export import neoverené verified');
   add('Uložené', '#/ulozene', 'Uložené výpočty, posledné a obľúbené', 'uložené posledné obľúbené zákazka história');
 
   WORDS.forEach((w) => add('Slovník', '#/slovnik', `${w.sk} → ${w.de}`, `${w.sk} ${w.de} ${w.p} ${w.a || ''}`, `[${w.p}]`));

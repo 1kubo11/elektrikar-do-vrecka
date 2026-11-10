@@ -12,26 +12,30 @@ import * as glossaryView from './ui/glossaryView.js';
 import * as dataView from './ui/dataView.js';
 import * as savedView from './ui/savedView.js';
 import * as searchView from './ui/searchView.js';
+import * as moreView from './ui/moreView.js';
 
+/** parent = položka spodnej lišty, pod ktorú obrazovka patrí */
 const ROUTES = {
-  '#/kalkulacka': { view: calculator, nav: 'Kábel', icon: '⚡' },
-  '#/motory': { view: motorView, nav: 'Motor', icon: 'M' },
-  '#/fv': { view: pvView, nav: 'FV', icon: '☀' },
-  '#/wallbox': { view: wallboxView, nav: 'Wallbox', icon: '🔌' },
-  '#/tabulky': { view: tablesView, nav: 'Tabuľky', icon: '▦' },
-  '#/slovnik': { view: glossaryView, nav: 'Slovník', icon: 'DE' },
-  '#/data': { view: dataView, nav: 'Dáta', icon: '✓' },
-  '#/ulozene': { view: savedView, nav: 'Uložené', icon: '★' },
-  '#/hladanie': { view: searchView, nav: null, icon: '🔍' },
+  '#/kalkulacka': { view: calculator, parent: '#/kalkulacka' },
+  '#/tabulky': { view: tablesView, parent: '#/tabulky' },
+  '#/slovnik': { view: glossaryView, parent: '#/slovnik' },
+  '#/viac': { view: moreView, parent: '#/viac' },
+  '#/motory': { view: motorView, parent: '#/viac' },
+  '#/fv': { view: pvView, parent: '#/viac' },
+  '#/wallbox': { view: wallboxView, parent: '#/viac' },
+  '#/ulozene': { view: savedView, parent: '#/viac' },
+  '#/data': { view: dataView, parent: '#/viac' },
+  '#/hladanie': { view: searchView, parent: null },
 };
 
-const NAV_ORDER = ['#/kalkulacka', '#/motory', '#/fv', '#/wallbox', '#/tabulky', '#/slovnik', '#/data', '#/ulozene'];
+const NAV = [
+  { route: '#/kalkulacka', label: 'Kábel', icon: '⚡' },
+  { route: '#/tabulky', label: 'Tabuľky', icon: '▦' },
+  { route: '#/slovnik', label: 'Slovník', icon: 'DE' },
+  { route: '#/viac', label: 'Viac', icon: '☰' },
+];
 
 let ctx = { lookup: createLookup(store.getOverrides()) };
-
-function rebuildLookup() {
-  ctx = { ...ctx, lookup: createLookup(store.getOverrides()) };
-}
 
 function currentRoute() {
   const h = location.hash || store.get().lastRoute || '#/kalkulacka';
@@ -39,39 +43,29 @@ function currentRoute() {
 }
 
 function renderShell() {
-  const country = store.getCountry();
   document.getElementById('app').innerHTML = `
     <header class="top">
       <button type="button" class="top-btn" id="btn-search" aria-label="Hľadať">🔍</button>
-      <div class="brand">
-        <span class="brand-name">Elektrikár do vrecka</span>
-        <span class="norm-badge ${country === 'SK' ? 'sk' : 'de'}" id="norm-badge">
-          ${country === 'DE' ? 'Nemecko · VDE/DIN' : 'Slovensko · STN'}
-        </span>
+      <a class="brand-name" href="#/kalkulacka">Elektrikár</a>
+      <div class="norm-pill" role="group" aria-label="Podľa ktorej normy sa počíta">
+        <button type="button" data-country="DE">🇩🇪 VDE</button>
+        <button type="button" data-country="SK">🇸🇰 STN</button>
       </div>
-      <button type="button" class="top-btn" id="btn-theme" aria-label="Tmavý/svetlý režim">◐</button>
     </header>
 
-    <div class="norm-switch">
-      <button type="button" class="ns-btn ${country === 'DE' ? 'on' : ''}" data-country="DE">🇩🇪 Nemecko — VDE / DIN</button>
-      <button type="button" class="ns-btn ${country === 'SK' ? 'on' : ''}" data-country="SK">🇸🇰 Slovensko — STN</button>
-    </div>
+    <p class="disclaimer">Pomôcka — nenahrádza normu, projekt ani meranie.</p>
 
-    <p class="disclaimer">
-      Aplikácia je <b>pomôcka</b>. Nenahrádza normu, projekt, meranie ani zodpovednosť odborníka.
-      Normové tabuľky sú <b>neoverené</b>, kým ich neskontroluješ v <a href="#/data">Overenie dát</a>.
-    </p>
-
+    <div id="crumb"></div>
     <main id="view"></main>
 
     <nav class="bottom">
-      ${NAV_ORDER.map((r) => `<a href="${r}" class="nav-item" data-route="${r}">
-        <span class="nav-ico">${ROUTES[r].icon}</span><span>${esc(ROUTES[r].nav)}</span></a>`).join('')}
+      ${NAV.map((n) => `<a href="${n.route}" class="nav-item" data-route="${n.route}">
+        <span class="nav-ico">${n.icon}</span><span>${esc(n.label)}</span></a>`).join('')}
     </nav>
 
     <div class="search-overlay" id="search-overlay" hidden>
       <div class="so-head">
-        <input type="search" id="so-input" placeholder="Hľadaj naprieč celou aplikáciou…" autocomplete="off">
+        <input type="search" id="so-input" placeholder="Hľadaj v celej aplikácii…" autocomplete="off">
         <button type="button" id="so-close" class="top-btn">✕</button>
       </div>
       <div id="so-res" class="so-res"></div>
@@ -79,9 +73,14 @@ function renderShell() {
   `;
 
   document.querySelectorAll('[data-country]').forEach((b) => {
-    b.addEventListener('click', () => { store.setCountry(b.dataset.country); renderShell(); renderView(); });
+    b.addEventListener('click', () => {
+      if (store.getCountry() === b.dataset.country) return;
+      store.setCountry(b.dataset.country);
+      paintCountry();
+      renderView();
+      toast(b.dataset.country === 'DE' ? 'Počítam podľa nemeckých noriem (VDE/DIN).' : 'Počítam podľa slovenských noriem (STN).');
+    });
   });
-  document.getElementById('btn-theme').addEventListener('click', cycleTheme);
   document.getElementById('btn-search').addEventListener('click', openSearch);
   document.getElementById('so-close').addEventListener('click', closeSearch);
 
@@ -91,12 +90,16 @@ function renderShell() {
     soRes.innerHTML = searchView.renderResults(searchView.search(soInput.value), soInput.value);
   });
   soRes.addEventListener('click', (e) => { if (e.target.closest('[data-close-search]')) closeSearch(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSearch(); });
+  paintCountry();
+}
+
+function paintCountry() {
+  const c = store.getCountry();
+  document.querySelectorAll('[data-country]').forEach((b) => b.classList.toggle('on', b.dataset.country === c));
 }
 
 function openSearch() {
-  const ov = document.getElementById('search-overlay');
-  ov.hidden = false;
+  document.getElementById('search-overlay').hidden = false;
   document.getElementById('so-input').focus();
 }
 function closeSearch() {
@@ -104,20 +107,21 @@ function closeSearch() {
   if (ov) ov.hidden = true;
 }
 
-function cycleTheme() {
-  const order = ['auto', 'dark', 'light'];
-  const next = order[(order.indexOf(store.getTheme()) + 1) % order.length];
-  store.setTheme(next);
-  toast(next === 'auto' ? 'Režim: podľa systému' : next === 'dark' ? 'Režim: tmavý' : 'Režim: svetlý');
-}
-
 function renderView() {
   const route = currentRoute();
-  const { view } = ROUTES[route];
-  const el = document.getElementById('view');
-  el.innerHTML = '';
-  document.querySelectorAll('.nav-item').forEach((a) => a.classList.toggle('on', a.dataset.route === route));
+  const { view, parent } = ROUTES[route];
+
+  /* čerstvý element pri každom zobrazení — staré obsluhy udalostí nezostanú visieť */
+  const old = document.getElementById('view');
+  const el = document.createElement('main');
+  el.id = 'view';
+  old.replaceWith(el);
+
+  document.querySelectorAll('.nav-item').forEach((a) => a.classList.toggle('on', a.dataset.route === parent));
+  document.getElementById('crumb').innerHTML = parent && parent !== route
+    ? `<a class="crumb" href="${parent}">‹ Viac</a><span class="crumb-title">${esc(view.title)}</span>` : '';
   document.title = `${view.title} — Elektrikár do vrecka`;
+
   try {
     view.render(el, ctx);
   } catch (e) {
@@ -136,23 +140,19 @@ if (!location.hash) location.hash = store.get().lastRoute || '#/kalkulacka';
 renderView();
 
 window.addEventListener('hashchange', () => { closeSearch(); renderView(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSearch(); });
 
 store.onChange(() => {
-  rebuildLookup();
-  const badge = document.getElementById('norm-badge');
-  if (badge) {
-    const c = store.getCountry();
-    badge.textContent = c === 'DE' ? 'Nemecko · VDE/DIN' : 'Slovensko · STN';
-    badge.className = `norm-badge ${c === 'SK' ? 'sk' : 'de'}`;
-  }
+  ctx = { ...ctx, lookup: createLookup(store.getOverrides()) };
 });
 
 /* offline */
-if ('serviceWorker' in navigator) {
+/* na localhoste sa service worker neregistruje — pri vývoji by držal staré súbory */
+const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+if ('serviceWorker' in navigator && !isLocal) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('SW:', e));
   });
 }
 
-window.addEventListener('online', () => toast('Pripojené. Aplikácia funguje aj offline.'));
 window.addEventListener('offline', () => toast('Bez signálu — aplikácia funguje ďalej.'));

@@ -49,9 +49,15 @@ export function coordination({ Ib, In, Iz, device }, lookup, r = newResult('Koor
     okI2 ? 'OK' : 'NEVYHOVUJE',
     `${i2.ref.standard} — ${i2.ref.table}`);
 
-  check(r, 'Ib ≤ In (istič prenesie záťaž)', okIb, `${fmt(Ib, 2)} A ≤ ${fmt(In, 0)} A`);
-  check(r, 'In ≤ Iz (kábel prenesie istenie)', okIn, `${fmt(In, 0)} A ≤ ${fmt(Iz, 2)} A`);
-  check(r, 'I2 ≤ 1,45 · Iz (ochrana pri preťažení)', okI2, `${fmt(I2, 2)} A ≤ ${fmt(1.45 * Iz, 2)} A`);
+  check(r, 'Ib ≤ In (istič prenesie záťaž)', okIb, `${fmt(Ib, 2)} A ≤ ${fmt(In, 0)} A`,
+    Ib > 0
+      ? (okIb ? `Istič ${fmt(In, 0)} A stačí na záťaž ${fmt(Ib, 1)} A` : `Istič ${fmt(In, 0)} A je na záťaž ${fmt(Ib, 1)} A slabý`)
+      : false);
+  check(r, 'In ≤ Iz (kábel prenesie istenie)', okIn, `${fmt(In, 0)} A ≤ ${fmt(Iz, 2)} A`,
+    okIn ? `Kábel unesie ${fmt(Iz, 1)} A — istič má ${fmt(In, 0)} A`
+      : `Kábel unesie len ${fmt(Iz, 1)} A — istič ${fmt(In, 0)} A je naň priveľký`);
+  check(r, 'I2 ≤ 1,45 · Iz (ochrana pri preťažení)', okI2, `${fmt(I2, 2)} A ≤ ${fmt(1.45 * Iz, 2)} A`,
+    okI2 ? false : `Poistka ${fmt(In, 0)} A kábel pri preťažení neochráni — daj menšiu alebo hrubší kábel`);
 
   if (i2.value > 1.45) {
     note(r, `Poistka ${device} má I2 = ${fmt(i2.value, 2)}·In, preto nestačí In ≤ Iz — potrebuješ In ≤ ${fmt(1.45 / i2.value, 3)} · Iz = ${fmt((1.45 / i2.value) * Iz, 1)} A.`);
@@ -238,7 +244,8 @@ export function faultLoopCheck(i, lookup, r = newResult('Odpojenie poruchy a skr
         `${fmt(c, 2)} · ${fmt(U0, 0)} / ${fmt(usedOption.ia, 0)}`, `${fmt(zm, 3)} Ω`,
         usedOption.src);
       check(r, `Samočinné odpojenie do ${fmt(req.t ?? 0, 1)} s`, tripped,
-        `Ik = ${fmt(Ik, 0)} A ≥ Ia = ${fmt(usedOption.ia, 0)} A → odpojí v ${fmt(usedOption.t, 2)} s. Zs = ${fmt(Zs, 3)} Ω ≤ Zs_max = ${fmt(zm, 3)} Ω`);
+        `Ik = ${fmt(Ik, 0)} A ≥ Ia = ${fmt(usedOption.ia, 0)} A → odpojí v ${fmt(usedOption.t, 2)} s. Zs = ${fmt(Zs, 3)} Ω ≤ Zs_max = ${fmt(zm, 3)} Ω`,
+        tripped ? 'Pri poruche istič vypne včas' : 'Pri poruche istič nevypne dosť rýchlo');
       r.zsMax = zm;
       r.tripTime = usedOption.t;
       r.Ia = usedOption.ia;
@@ -246,13 +253,15 @@ export function faultLoopCheck(i, lookup, r = newResult('Odpojenie poruchy a skr
       const worst = opts.options.reduce((a, b) => (a.ia < b.ia ? a : b));
       const zm = zsMax({ c, U0, Ia: worst.ia });
       check(r, 'Samočinné odpojenie', false,
-        `Ik = ${fmt(Ik, 0)} A je menší ako potrebný Ia = ${fmt(worst.ia, 0)} A. Zs = ${fmt(Zs, 3)} Ω > Zs_max = ${fmt(zm, 3)} Ω. Istenie nevypne v požadovanom čase.`);
+        `Ik = ${fmt(Ik, 0)} A je menší ako potrebný Ia = ${fmt(worst.ia, 0)} A. Zs = ${fmt(Zs, 3)} Ω > Zs_max = ${fmt(zm, 3)} Ω. Istenie nevypne v požadovanom čase.`,
+        'Pri poruche istič nevypne včas — kábel je pridlhý alebo pritenký');
       r.zsMax = zm;
       r.Ia = worst.ia;
       r.fixesHint = 'skráť trasu, zväčši prierez, zmeň charakteristiku na nižšiu (D→C→B) alebo pridaj RCD';
     }
   } else {
-    check(r, 'Samočinné odpojenie', null, 'chýba prúd odpojenia Ia');
+    check(r, 'Samočinné odpojenie', null, 'chýba prúd odpojenia Ia',
+      'Vypnutie pri poruche sa nedá overiť — chýba údaj o istení');
   }
 
   if (netType === 'TT') {
@@ -289,14 +298,15 @@ export function faultLoopCheck(i, lookup, r = newResult('Odpojenie poruchy a skr
         `${fmt(k2s2, 0)} ≥ ${fmt(Ik, 0)}² · ${fmt(r.tripTime, 3)} = ${fmt(Ik * Ik * r.tripTime, 0)}`,
         okTherm ? 'OK' : 'NEVYHOVUJE');
       check(r, 'Skratová odolnosť kábla (k²S² ≥ I²t)', okTherm,
-        `kábel znesie ${fmt(tPerm, 3)} s, istenie vypne za ${fmt(r.tripTime, 3)} s`);
+        `kábel znesie ${fmt(tPerm, 3)} s, istenie vypne za ${fmt(r.tripTime, 3)} s`,
+        okTherm ? 'Kábel vydrží skrat' : 'Kábel nevydrží skrat — treba väčší prierez');
       if (!okTherm) {
         const sMin = minSectionForShortCircuit({ k, Ik, t: r.tripTime });
         note(r, `Na skratovú odolnosť potrebuješ minimálne S = Ik·√t / k = ${fmt(sMin, 2)} mm².`);
         r.sMinShort = sMin;
       }
     } else {
-      check(r, 'Skratová odolnosť kábla', null, 'bez času vypnutia sa nedá overiť');
+      check(r, 'Skratová odolnosť kábla', null, 'bez času vypnutia sa nedá overiť', false);
     }
     note(r, 'Skratová odolnosť je najkritickejšia na ZAČIATKU obvodu, kde je skratový prúd najväčší — nie na konci. Preto ju kontroluj aj pre Ik na začiatku.');
   }

@@ -102,7 +102,10 @@ export function motor(i, lookup) {
         useRef(r, lim.ref);
         if (!lim.missing) {
           check(r, `Úbytok pri rozbehu ≤ ${lim.value} %`, d.percent <= lim.value,
-            `${fmt(d.percent, 1)} % (pri väčšom úbytku môže motor nerozbehnúť alebo zhasnú svetlá)`);
+            `${fmt(d.percent, 1)} % (pri väčšom úbytku môže motor nerozbehnúť alebo zhasnú svetlá)`,
+            d.percent <= lim.value
+              ? `Úbytok pri rozbehu ${fmt(d.percent, 1)} % — povolené ${lim.value} %`
+              : `Úbytok pri rozbehu ${fmt(d.percent, 1)} % je priveľa — motor sa nemusí rozbehnúť`);
         }
         r.startDrop = d;
       }

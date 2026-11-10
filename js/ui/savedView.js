@@ -39,7 +39,7 @@ export function render(root) {
       </li>`).join('')}</ul>` : '<p class="muted">Obľúbené pridávaš hviezdičkou v slovníku.</p>'}
   `;
 
-  root.addEventListener('click', (e) => {
+  root.onclick = (e) => {
     const open = e.target.closest('[data-open]');
     if (open) {
       const kind = open.dataset.kind;
@@ -68,7 +68,7 @@ export function render(root) {
       store.toggleFavourite({ type, id });
       render(root);
     }
-  });
+  };
 }
 
 function item(x) {

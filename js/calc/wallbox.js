@@ -61,12 +61,14 @@ export function wallbox(i, lookup) {
       note(r, rules.value.rcd);
       note(r, rules.value.extra);
       check(r, 'Ochrana pred DC poruchovým prúdom 6 mA je vyriešená', null,
-        'Over v návode wallboxu, či má zabudovanú RDC-DD (DC detekciu). Ak NEMÁ, musíš použiť RCD typ B. RCD typ A sám nestačí.');
+        'Over v návode wallboxu, či má zabudovanú RDC-DD (DC detekciu). Ak NEMÁ, musíš použiť RCD typ B. RCD typ A sám nestačí.',
+        'Pozri v návode, či má wallbox DC ochranu 6 mA. Ak nie, treba chránič typ B.');
     }
 
     if (country === 'DE' && Number(key) > 12) {
       check(r, 'Výkon nad 12 kW — potrebné schválenie VNB', null,
-        `${key} kW presahuje hranicu 12 kW pre jednoduché ohlásenie. V Nemecku to vyžaduje SCHVÁLENIE prevádzkovateľa siete, nie len ohlásenie (NEOVERENÉ — over aktuálne TAB).`);
+        `${key} kW presahuje hranicu 12 kW pre jednoduché ohlásenie. V Nemecku to vyžaduje SCHVÁLENIE prevádzkovateľa siete, nie len ohlásenie (NEOVERENÉ — over aktuálne TAB).`,
+        'Nad 12 kW treba v Nemecku schválenie od prevádzkovateľa siete, nestačí ohlásenie.');
       note(r, 'Preto sa v praxi často montuje 11 kW wallbox namiesto 22 kW, alebo 22 kW s obmedzením výkonu.');
     }
 
