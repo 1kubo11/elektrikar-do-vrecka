@@ -102,14 +102,26 @@ function recompute(root, ctx) {
   if (r.design) {
     const n = r.phases === 3 ? 5 : 3;
     const sec = String(r.design.S).replace('.', ',');
+    /* odporúčaný typ kábla podľa krajiny, materiálu a miesta */
+    const ground = S.method === 'D1' || S.method === 'D2';
+    const cableType = S.material === 'Al' ? (de ? 'NAYY-J' : 'AYKY-J')
+      : ground ? (de ? 'NYY-J' : 'CYKY-J')
+        : (de ? 'NYM-J' : 'CYKY-J');
     hero = `<div class="answer">
       <div class="answer-title">Použi</div>
       <div class="answer-row"><span class="answer-k">Kábel</span>
-        <span class="answer-v">${n}×${sec} mm²</span><span class="answer-s">${S.material === 'Al' ? 'hliník' : 'meď'}</span></div>
+        <span class="answer-v">${esc(cableType)} ${n}×${sec} mm²</span><span class="answer-s">${S.material === 'Al' ? 'hliník' : 'meď'}</span></div>
       <div class="answer-row"><span class="answer-k">Istič</span>
         <span class="answer-v">${esc(r.design.device)}${r.design.In}</span><span class="answer-s">${r.phases === 3 ? '3-pólový' : '1-pólový'}</span></div>
       <div class="answer-row"><span class="answer-k">Chránič</span>
         <span class="answer-v">typ A</span><span class="answer-s">30 mA</span></div>
+      <dl class="facts">
+        <div><dt>Nabíjací prúd</dt><dd>${r.current} A · ${String(S.powerClass).replace('.', ',')} kW</dd></div>
+        <div><dt>Kábel unesie</dt><dd>${fmt(r.design.iz, 0)} A</dd></div>
+        <div><dt>Úbytok napätia</dt><dd>${fmt(r.design.dropPercent, 1)} %</dd></div>
+        <div><dt>Fázy</dt><dd>${r.phases === 3 ? '3 fázy · 400 V' : '1 fáza · 230 V'}</dd></div>
+      </dl>
+      ${ground && !de && S.material !== 'Al' ? '<p class="answer-warn">CYKY do zeme len v chráničke — over v projekte.</p>' : ''}
       <p class="answer-note">Chránič typ A stačí len vtedy, keď má wallbox vlastnú DC ochranu 6 mA (pozri návod). Ak ju nemá, treba <b>typ B</b>.
         Wallbox daj na vlastný obvod, nič iné naň nepripájaj.</p>
     </div>`;

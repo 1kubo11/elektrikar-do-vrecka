@@ -40,12 +40,34 @@ const PRESETS = [
   { id: 'custom', t: 'Niečo iné', s: 'zadám výkon', set: { loadMode: 'power' } },
 ];
 
+/**
+ * Káble v jednoduchom režime. Z typu kábla vyplýva materiál aj to, či ide
+ * o jednotlivé vodiče (single) — tie sa počítajú ako uloženie B1/A1, nie B2/A2.
+ * where = kde sa kábel smie použiť; warn = čo napísať, keď sa tam nehodí.
+ */
+const ALL_PLACES = ['B2', 'A2', 'C', 'D2'];
+const SIMPLE_CABLES = [
+  { id: 'NYM', name: 'NYM-J', t: 'NYM-J — bežný kábel do domu', mat: 'Cu', where: ['B2', 'A2', 'C'], home: 'DE' },
+  { id: 'NYY', name: 'NYY-J', t: 'NYY-J — do zeme a von', mat: 'Cu', where: ALL_PLACES, home: 'DE' },
+  { id: 'NAYY', name: 'NAYY-J', t: 'NAYY-J — hliníkový, na prívody', mat: 'Al', where: ALL_PLACES, home: 'DE' },
+  { id: 'NHXMH', name: 'NHXMH-J', t: 'NHXMH-J — bezhalogénový', mat: 'Cu', where: ['B2', 'A2', 'C'], home: 'DE' },
+  { id: 'CYKY', name: 'CYKY-J', t: 'CYKY-J — bežný kábel do domu', mat: 'Cu', where: ['B2', 'A2', 'C'], home: 'SK' },
+  { id: 'AYKY', name: 'AYKY-J', t: 'AYKY-J — hliníkový, na prívody', mat: 'Al', where: ALL_PLACES, home: 'SK' },
+  { id: 'H07V-U', name: 'H07V-U', t: 'H07V-U — vodiče do trubky (drôt)', mat: 'Cu', single: true, where: ['B2', 'A2'], home: 'BOTH',
+    warn: 'Jednotlivé vodiče musia ísť celé v trubke alebo lište — nie voľne na povrchu ani do zeme.' },
+  { id: 'H07V-K', name: 'H07V-K', t: 'H07V-K — vodiče do trubky (lanko)', mat: 'Cu', single: true, where: ['B2', 'A2'], home: 'BOTH',
+    warn: 'Jednotlivé vodiče musia ísť celé v trubke alebo lište — nie voľne na povrchu ani do zeme.' },
+  { id: 'H07RN-F', name: 'H07RN-F', t: 'H07RN-F — gumový, na stavbu', mat: 'Cu', where: ['C'], home: 'BOTH',
+    warn: 'Je to pohyblivý prívod na stavbu a k strojom, nie kábel na pevné uloženie do steny alebo zeme.' },
+];
+
 const COMMON_RATINGS = [6, 10, 13, 16, 20, 25, 32, 40, 50, 63];
 const CALC_KEY = 'edv.calc.v1';
 
 const DEFAULT_STATE = {
   mode: 'A',
   preset: 'sockets',
+  simpleCable: '',          // '' = podľa krajiny (DE → NYM-J, SK → CYKY-J)
   material: 'Cu',
   insulation: 'PVC',
   cableType: 'NYM',
@@ -105,6 +127,45 @@ const isGround = () => S.method === 'D1' || S.method === 'D2';
 const simpleDevice = () => (['B', 'C'].includes(S.device) ? S.device : 'B');
 const simplePhases = () => (Number(S.phases) === 3 ? 3 : 1);
 const comma = (x) => String(x).replace('.', ',');
+
+/** Kábel zvolený v jednoduchom režime; keď nie je zvolený, bežný kábel danej krajiny. */
+function simpleCable() {
+  return SIMPLE_CABLES.find((x) => x.id === S.simpleCable)
+    || SIMPLE_CABLES.find((x) => x.id === (store.getCountry() === 'SK' ? 'CYKY' : 'NYM'));
+}
+const simpleMat = () => simpleCable().mat;
+
+/** Jednotlivé vodiče v trubke = B1/A1, viacžilový kábel = B2/A2. */
+function simpleMethod() {
+  if (!simpleCable().single) return S.method;
+  return { B2: 'B1', A2: 'A1' }[S.method] || S.method;
+}
+
+function cableOptions() {
+  const c = store.getCountry();
+  const rank = (x) => (x.home === c ? 0 : x.home === 'BOTH' ? 1 : 2);
+  return [...SIMPLE_CABLES].sort((a, b) => rank(a) - rank(b)).map((x) => ({ v: x.id, t: x.t }));
+}
+
+/** Označenie kábla tak, ako sa píše do objednávky. */
+function cableLabel(sec, phases) {
+  const c = simpleCable();
+  const n = phases === 3 ? 5 : 3;
+  return c.single ? `${n}× ${c.name} ${comma(sec)} mm²` : `${c.name} ${n}×${comma(sec)} mm²`;
+}
+
+/** Krátka poznámka ku káblu + varovanie, keď sa na zvolené miesto nehodí. */
+function cableInfo() {
+  const c = simpleCable();
+  const d = CABLES.find((x) => x.id === c.id);
+  if (!d) return '';
+  const eq = (d.country === 'DE' ? d.sk : d.country === 'SK' ? d.de : '').replace('blízky ekvivalent: ', '');
+  const other = eq ? `${d.country === 'DE' ? 'na Slovensku podobný' : 'v Nemecku podobný'}: ${eq}` : '';
+  const known = PLACES.some((pl) => pl.m === S.method);
+  const fits = !known || c.where.includes(S.method);
+  return `${fits ? '' : `<p class="answer-warn"><b>${esc(c.name)} sem nepatrí.</b> ${esc(c.warn || d.noUse)}</p>`}
+    <p class="answer-note"><b>${esc(c.name)}</b> (${c.mat === 'Al' ? 'hliník' : 'meď'}): ${esc(d.use)}${other ? ` <span class="muted">(${esc(other)})</span>` : ''}</p>`;
+}
 
 export function render(root, ctx) {
   const detail = store.isDetail();
@@ -166,6 +227,8 @@ function formSimple() {
   const lengthQ = mode === 'A' ? fieldNum({ name: 'L', label: 'Aký dlhý bude kábel?', value: S.L, unit: 'm',
     hint: 'Od rozvádzača po posledný spotrebič.' }) : '';
 
+  const cableQ = fieldSelect({ name: 'simpleCable', label: 'Aký kábel použiješ?', value: simpleCable().id, options: cableOptions() });
+
   const inPlaces = PLACES.some((p) => p.m === S.method);
   const placeQ = `<div class="q">
     <span class="q-label">Kde bude kábel?</span>
@@ -181,9 +244,6 @@ function formSimple() {
   if (S.ambient !== '' && !tempOpts.some((o) => o.v === String(S.ambient))) tempOpts.push({ v: S.ambient, t: `${S.ambient} °C` });
 
   const more = details('Ďalšie možnosti', `<div class="grid">
-    ${segmented({ name: 'material', label: 'Z čoho je kábel?', value: S.material, options: [
-      { v: 'Cu', t: 'Meď' }, { v: 'Al', t: 'Hliník' },
-    ] })}
     <div>${segmented({ name: 'device', label: 'Typ ističa', value: simpleDevice(), options: [
       { v: 'B', t: 'B — bežný' }, { v: 'C', t: 'C — na nárazy' },
     ] })}<span class="field-hint">B stačí skoro vždy. C daj tam, kde pri zapnutí vyhadzuje B (veľa LED zdrojov, motorček).</span></div>
@@ -201,6 +261,7 @@ function formSimple() {
       ${sectionQ}
       ${ratingQ}
       ${lengthQ}
+      ${cableQ}
     </div>
     ${placeQ}
     ${more}
@@ -404,9 +465,9 @@ function inputSummary() {
   const out = {
     'Úloha': MODES.find((m) => m.v === S.mode).t,
     'Sieť': String(S.phases) === 'custom' ? `${S.U} V` : (Number(S.phases) === 3 ? '3f 400 V' : '1f 230 V'),
-    'Materiál': S.material,
+    'Materiál': store.isDetail() ? S.material : simpleMat(),
     'Izolácia': store.isDetail() ? S.insulation : 'PVC',
-    'Uloženie': `${S.method} — ${DATASETS.installMethods.data[S.method]?.sk || ''}`,
+    'Uloženie': (() => { const m = store.isDetail() ? S.method : simpleMethod(); return `${m} — ${DATASETS.installMethods.data[m]?.sk || ''}`; })(),
     'Istenie': (store.isDetail() ? S.device : simpleDevice()) + (S.In && S.mode === 'C' ? ` ${S.In} A` : ''),
   };
   if (S.mode === 'A') out[S.loadMode === 'power' ? 'Výkon' : 'Prúd záťaže'] = S.loadMode === 'power' ? `${S.power} kW` : `${S.current} A`;
@@ -414,6 +475,7 @@ function inputSummary() {
   if (S.L && S.mode === 'A') out['Dĺžka'] = `${S.L} m`;
   if (S.ambient) out['Teplota'] = `${S.ambient} °C`;
   if (S.circuits) out['Súbežné obvody'] = S.circuits;
+  if (!store.isDetail()) out['Typ kábla'] = simpleCable().name;
   if (store.isDetail()) {
     out['Typ kábla'] = S.cableType;
     out['Typ siete'] = S.netType;
@@ -436,9 +498,9 @@ function buildInputs() {
     return {
       phases: simplePhases(),
       U: '',
-      material: S.material,
+      material: simpleMat(),
       insulation: 'PVC',
-      method: S.method,
+      method: simpleMethod(),
       device: simpleDevice(),
       loadMode: S.loadMode,
       power: S.loadMode === 'power' ? S.power : '',
@@ -517,7 +579,11 @@ function recompute(root, ctx) {
     if (S.mode === 'D') extra = quickTable(r, true);
     if (S.mode === 'A' && r.tried?.length) extra += tried(r);
   } else {
-    if (S.mode === 'A' && r.chosen) extra = answerA(r, inputs);
+    if (S.mode === 'A' && r.chosen) {
+      /* ako ďaleko by sa s navrhnutým káblom a ističom ešte dalo ísť */
+      const ml = modeC({ ...inputs, S: r.chosen.S, In: r.chosen.In, loadMode: 'current', current: r.Ib, power: '', L: '' }, ctx.lookup);
+      extra = answerA(r, inputs, ml.maxLength);
+    }
     if (S.mode === 'B' && r.In) extra = answerB(r);
     if (S.mode === 'C' && r.maxLength !== undefined) extra = heroLengths(r, false);
     if (S.mode === 'D') extra = quickTable(r, false);
@@ -529,39 +595,51 @@ function recompute(root, ctx) {
 
 /* ───────── jednoduché odpovede ───────── */
 
-function cableName(sec, phases, Spe) {
-  const n = phases === 3 ? 5 : 3;
-  if (!Spe || Spe === sec) return `${n}×${comma(sec)} mm²`;
-  return `${n - 1}×${comma(sec)} + PE ${comma(Spe)} mm²`;
-}
-
 function alNote() {
-  return S.material === 'Al'
+  return simpleMat() === 'Al'
     ? '<p class="answer-warn">Hliník: len do svoriek určených na hliník a dotiahnuť momentom od výrobcu. Nikdy nespájaj priamo s meďou.</p>'
     : '';
 }
 
-function answerA(r, inputs) {
+function fact(k, v) {
+  return `<div><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
+}
+
+function answerA(r, inputs, maxLen) {
   const c = r.chosen;
+  const kw = ((inputs.phases === 3 ? Math.sqrt(3) * 400 : 230) * r.Ib) / 1000;
   return `<div class="answer">
     <div class="answer-title">Použi</div>
     <div class="answer-row"><span class="answer-k">Kábel</span>
-      <span class="answer-v">${esc(cableName(c.S, inputs.phases, c.Spe))}</span>
-      <span class="answer-s">${S.material === 'Al' ? 'hliník' : 'meď'}</span></div>
+      <span class="answer-v">${esc(cableLabel(c.S, inputs.phases))}</span></div>
     <div class="answer-row"><span class="answer-k">Istič</span>
       <span class="answer-v">${esc(c.device)}${esc(c.In)}</span>
-      <span class="answer-s">${esc(c.In)} A</span></div>
+      <span class="answer-s">${esc(c.In)} A, ${inputs.phases === 3 ? '3-pólový' : '1-pólový'}</span></div>
+    ${S.preset === 'sockets' ? `<div class="answer-row"><span class="answer-k">Chránič</span>
+      <span class="answer-v">30 mA</span><span class="answer-s">zásuvky ho musia mať</span></div>` : ''}
+    <dl class="facts">
+      ${fact('Zaťaženie', `${fmt(r.Ib, 1)} A · ${fmt(kw, 1)} kW`)}
+      ${fact('Kábel unesie', `${fmt(c.iz, 0)} A`)}
+      ${fact('Úbytok napätia', `${fmt(c.dropPercent, 1)} % · ${fmt(c.dropVolts, 1)} V`)}
+      ${maxLen !== undefined ? fact('Najďalej by šlo', `${fmt(Math.max(0, maxLen), 0)} m`) : ''}
+    </dl>
     ${alNote()}
+    ${cableInfo()}
   </div>`;
 }
 
 function answerB(r) {
   return `<div class="answer">
-    <div class="answer-title">Na tento kábel najviac</div>
-    <div class="answer-row"><span class="answer-k">Istič</span>
+    <div class="answer-title">${esc(cableLabel(S.S, simplePhases()))}</div>
+    <div class="answer-row"><span class="answer-k">Najviac</span>
       <span class="answer-v">${esc(simpleDevice())}${esc(r.In)}</span>
-      <span class="answer-s">kábel unesie ${fmt(r.iz, 0)} A</span></div>
+      <span class="answer-s">istič ${esc(r.In)} A</span></div>
+    <dl class="facts">
+      ${fact('Kábel unesie', `${fmt(r.iz, 0)} A`)}
+      ${fact('Čo sa naň zapojí', `do ${fmt(((simplePhases() === 3 ? Math.sqrt(3) * 400 : 230) * r.In) / 1000, 1)} kW`)}
+    </dl>
     ${alNote()}
+    ${cableInfo()}
   </div>`;
 }
 
@@ -601,14 +679,15 @@ function heroLengths(r, detail) {
 
   if (!detail) {
     return `<div class="answer">
-      <div class="answer-title">Najďalej môžeš ísť</div>
-      <div class="answer-row"><span class="answer-k">Dĺžka</span><span class="answer-v">${max}</span></div>
+      <div class="answer-title">${esc(cableLabel(S.S, simplePhases()))} + ${esc(simpleDevice())}${esc(S.In)}</div>
+      <div class="answer-row"><span class="answer-k">Najďalej</span><span class="answer-v">${max}</span></div>
       <div class="lens">
         ${row('drop', 'aby nekleslo napätie', r.byDrop?.L)}
         ${row('disconnect', 'aby istič pri poruche vypol', r.byDisconnect?.L)}
         ${short.impossible ? row('short', 'aby kábel vydržal skrat', 0) : ''}
       </div>
       ${alNote()}
+      ${cableInfo()}
     </div>`;
   }
 
@@ -635,6 +714,7 @@ function quickTable(r, detail) {
   if (!detail) {
     const rows = r.rows.filter((x) => x.S <= 50);
     return `<div class="answer">
+      <div class="answer-title">${esc(simpleCable().name)} · ${simplePhases() === 3 ? '5 žíl, 3 fázy' : '3 žily, 1 fáza'}</div>
       <div class="table-wrap">
         <table class="tbl big">
           <thead><tr><th>Kábel</th><th>Unesie</th><th>Istič</th><th>Najďalej</th></tr></thead>
@@ -650,6 +730,8 @@ function quickTable(r, detail) {
       </div>
       <p class="muted small">Dĺžka platí pre najväčší istič v riadku pri plnom zaťažení. Pri menšom odbere môžeš ísť ďalej.
         „Nevyjde“ znamená, že taký veľký istič by v bežnej sieti pri poruche nevypol včas — treba poistky alebo zmerať sieť.</p>
+      ${alNote()}
+      ${cableInfo()}
     </div>`;
   }
 

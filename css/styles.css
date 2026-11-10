@@ -562,3 +562,10 @@ main > .soft-note { margin: 10px 0; }
 
 form > .grid { margin-bottom: 12px; }
 form > .grid:empty { display: none; }
+
+/* v1.2 — viac údajov v odpovedi */
+.answer-v { font-size: 24px; }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
+.facts div { min-width: 0; }
+.facts dt { font-size: 12.5px; font-weight: 700; color: var(--fg2); }
+.facts dd { margin: 1px 0 0; font-size: 17px; font-weight: 800; }
