@@ -569,3 +569,22 @@ form > .grid:empty { display: none; }
 .facts div { min-width: 0; }
 .facts dt { font-size: 12.5px; font-weight: 700; color: var(--fg2); }
 .facts dd { margin: 1px 0 0; font-size: 17px; font-weight: 800; }
+
+/* v1.3 — normy a zdroje */
+.norms, .norm-ds { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 8px; }
+.norm { border: 1px solid var(--line); border-left: 4px solid var(--green); border-radius: 12px; background: var(--bg2); padding: 10px 12px; }
+.norm.unk { border-left-color: var(--orange); }
+.norm p { margin: 4px 0 0; font-size: 14px; line-height: 1.45; }
+.norm-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.norm-head b { font-size: 15.5px; }
+.norm-ed { font-size: 13.5px; font-weight: 700; color: var(--accent); }
+.norm.unk .norm-ed { color: var(--orange); }
+.norm-ds li { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; line-height: 1.4; }
+.norm-ds .chk-ico { width: 22px; height: 22px; flex: none; border-radius: 6px; display: grid; place-items: center; font-weight: 900; color: #fff; font-size: 13px; }
+.norm-ds .ok .chk-ico { background: var(--green); }
+.norm-ds .unk .chk-ico { background: var(--orange); }
+.ref-src, .ds-src { font-size: 12px; color: var(--fg2); }
+.ds-src { margin: 6px 0 0; line-height: 1.4; }
+.ds-title { font-family: inherit !important; }
+.ds-meta code { font-size: 11px; }
+.soft-note a, .used-with a { font-weight: 700; }

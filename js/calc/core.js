@@ -93,9 +93,9 @@ export function grade(r) {
       color: 'orange',
       label: 'Vyhovuje — ale na neoverených dátach',
       reason:
-        `Výpočet použil ${unverified.length} neoverenú hodnotu/tabuľku ` +
-        `(${[...new Set(unverified.map((u) => u.datasetId))].join(', ')}). ` +
-        `Skontroluj ich v Overenie dát a označ ako overené.`,
+        `Výpočet použil hodnoty, ktoré sa nepodarilo porovnať so zdrojom: ` +
+        `${[...new Set(unverified.map((u) => u.title || u.datasetId))].join('; ')}. ` +
+        `Skontroluj ich podľa normy.`,
     };
   }
   if (r.status === 'warn') return { kind: 'warn', color: 'orange', label: 'Na hrane', reason: reasonWarn(r) };

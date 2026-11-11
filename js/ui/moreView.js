@@ -39,11 +39,14 @@ export function render(root) {
       </div>
     </div>
 
-    <h3>Tabuľky podľa normy</h3>
-    <a class="tile link wide" href="#/data">
-      <b>Skontrolovať tabuľky</b>
-      <span>Hodnoty v aplikácii ešte nie sú porovnané s normou, preto sú výsledky „orientačné“.
-      Tu ich prejdeš, opravíš a odškrtneš — potom budú výsledky zelené.</span>
+    <h3>Normy</h3>
+    <a class="tile link wide" href="#/normy">
+      <b>Normy v aplikácii</b>
+      <span>Ktoré vydania noriem platia v Nemecku a na Slovensku, čo z nich je porovnané so zdrojom a čo nie.</span>
+    </a>
+    <a class="tile link wide" href="#/data" style="margin-top:8px">
+      <b>Tabuľky a hodnoty</b>
+      <span>Všetky čísla, s ktorými aplikácia počíta. Dajú sa skontrolovať, opraviť a preniesť do iného telefónu.</span>
     </a>
   `;
 

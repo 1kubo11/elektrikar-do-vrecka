@@ -98,7 +98,7 @@ export function motor(i, lookup) {
           phases === 3 ? 'ΔU = √3 · L · Ia · R′·cos φ_rozbeh' : 'ΔU = 2 · L · Ia · R′·cos φ_rozbeh',
           `${phases === 3 ? '√3' : '2'} · ${fmt(num(i.L, 'd'), 1)} · ${fmt(Ia, 1)} · ...`,
           `${fmt(d.deltaU, 1)} V (${fmt(d.percent, 1)} %)`);
-        const lim = lookup.get('voltageDropLimits', [i.country || 'DE', 'motorStart']);
+        const lim = lookup.get('voltageDropOther', [i.country || 'DE', 'motorStart']);
         useRef(r, lim.ref);
         if (!lim.missing) {
           check(r, `Úbytok pri rozbehu ≤ ${lim.value} %`, d.percent <= lim.value,

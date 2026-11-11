@@ -4,6 +4,7 @@
 
 import { newResult, useRef, addDefault, note, check, missing, fmt, num, safely, step } from './core.js';
 import { modeA } from './design.js';
+import { dsWallboxRules } from '../data/norms.js';
 
 export function wallbox(i, lookup) {
   return safely('Wallbox — kábel, istenie a ochrana', (r) => {
@@ -52,7 +53,7 @@ export function wallbox(i, lookup) {
     r.designResult = design;
 
     /* RCD a DC ochrana */
-    const rules = lookup.get('wallboxRules', [country]);
+    const rules = lookup.get(dsWallboxRules(country), []);
     useRef(r, rules.ref);
     if (!rules.missing) {
       r.rcd = rules.value.rcd;
@@ -63,13 +64,20 @@ export function wallbox(i, lookup) {
       check(r, 'Ochrana pred DC poruchovým prúdom 6 mA je vyriešená', null,
         'Over v návode wallboxu, či má zabudovanú RDC-DD (DC detekciu). Ak NEMÁ, musíš použiť RCD typ B. RCD typ A sám nestačí.',
         'Pozri v návode, či má wallbox DC ochranu 6 mA. Ak nie, treba chránič typ B.');
-    }
 
-    if (country === 'DE' && Number(key) > 12) {
-      check(r, 'Výkon nad 12 kW — potrebné schválenie VNB', null,
-        `${key} kW presahuje hranicu 12 kW pre jednoduché ohlásenie. V Nemecku to vyžaduje SCHVÁLENIE prevádzkovateľa siete, nie len ohlásenie (NEOVERENÉ — over aktuálne TAB).`,
-        'Nad 12 kW treba v Nemecku schválenie od prevádzkovateľa siete, nestačí ohlásenie.');
-      note(r, 'Preto sa v praxi často montuje 11 kW wallbox namiesto 22 kW, alebo 22 kW s obmedzením výkonu.');
+      /* hranice z dát: súhlas nad 12 kVA, riadenie podľa § 14a nad 4,2 kW (len Nemecko) */
+      const kva = ((phases === 3 ? Math.sqrt(3) * 400 : 230) * current) / 1000;
+      const lim = rules.value.approvalAboveKva;
+      if (lim && kva > lim) {
+        check(r, `Výkon nad ${lim} kVA — treba súhlas prevádzkovateľa siete`, null,
+          `${key} kW (${fmt(kva, 1)} kVA) presahuje ${lim} kVA. Nestačí ohlásenie, prevádzkovateľ siete musí dať súhlas; vyjadrí sa do dvoch mesiacov.`,
+          `Nad ${lim} kVA (asi 11 kW) treba súhlas prevádzkovateľa siete, nestačí ohlásenie.`);
+        note(r, 'Preto sa v praxi často montuje 11 kW wallbox namiesto 22 kW.');
+      }
+      const ctl = rules.value.controllableAboveKw;
+      if (ctl && Number(key) > ctl) {
+        note(r, `Wallbox nad ${String(ctl).replace('.', ',')} kW spadá v Nemecku pod § 14a EnWG — treba dohodu o riadení zo strany siete a k tomu meranie a ovládanie.`);
+      }
     }
 
     note(r, 'Wallbox daj na samostatný obvod, bez zásuviek a iných spotrebičov. Prívodný kábel chráň pred mechanickým poškodením.');

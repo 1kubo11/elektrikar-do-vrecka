@@ -3,7 +3,7 @@
  * POZOR: pri zmene ktoréhokoľvek súboru zvýš CACHE, inak telefón drží starú verziu.
  */
 
-const CACHE = 'edv-v1.2.0';
+const CACHE = 'edv-v1.3.0';
 
 const PRECACHE = [
   './',
@@ -41,6 +41,7 @@ const PRECACHE = [
   './js/ui/savedView.js',
   './js/ui/searchView.js',
   './js/ui/moreView.js',
+  './js/ui/normsView.js',
 ];
 
 self.addEventListener('install', (e) => {

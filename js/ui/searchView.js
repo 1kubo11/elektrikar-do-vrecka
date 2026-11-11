@@ -24,7 +24,8 @@ function buildIndex() {
   add('Tabuľky', '#/tabulky', 'Tabuľky a značenie', 'tabuľky značenie farby vodičov ip ik zóny kúpeľňa značky svorky momenty');
   add('Slovník', '#/slovnik', 'Slovník SK–DE', 'slovník nemčina preklad výslovnosť vety');
   add('Viac', '#/viac', 'Nastavenia — podrobný režim, vzhľad', 'nastavenia podrobný jednoduchý režim tmavý svetlý vzhľad téma');
-  add('Overenie dát', '#/data', 'Skontrolovať tabuľky podľa normy', 'overenie dáta normy tabuľky export import neoverené verified');
+  add('Normy', '#/normy', 'Normy v aplikácii — platné vydania DIN VDE a STN', 'normy vydanie platná din vde stn 0298 0100 33 2000 zdroj overené aktuálne');
+  add('Tabuľky a hodnoty', '#/data', 'Tabuľky a hodnoty — všetky čísla, s ktorými aplikácia počíta', 'overenie dáta normy tabuľky export import neoverené verified');
   add('Uložené', '#/ulozene', 'Uložené výpočty, posledné a obľúbené', 'uložené posledné obľúbené zákazka história');
 
   WORDS.forEach((w) => add('Slovník', '#/slovnik', `${w.sk} → ${w.de}`, `${w.sk} ${w.de} ${w.p} ${w.a || ''}`, `[${w.p}]`));
@@ -46,7 +47,7 @@ function buildIndex() {
   TORQUES.rows.forEach((t) => add('Momenty', '#/tabulky', `${t.size} — ${t.nm}`, `moment ${t.size} ${t.nm} ${t.note}`, t.note));
   Object.entries(DATASETS.installMethods.data).forEach(([k, v]) => add('Uloženie', '#/kalkulacka', `${k} — ${v.sk}`, `${k} ${v.sk} ${v.de} ${v.hint} uloženie verlegeart`, v.hint));
   Object.entries(DATASETS.netTypes.data).forEach(([k, v]) => add('Sieť', '#/tabulky', `${k} — ${v.sk}`, `${k} ${v.sk} ${v.de} ${v.warn}`, v.warn));
-  Object.keys(DATASETS).forEach((id) => add('Dataset', '#/data', id, `${id} ${DATASETS[id].standard} ${DATASETS[id].table} ${DATASETS[id].note}`, DATASETS[id].standard));
+  Object.keys(DATASETS).forEach((id) => add('Hodnoty', '#/data', DATASETS[id].title || id, `${id} ${DATASETS[id].title || ''} ${DATASETS[id].standard} ${DATASETS[id].table} ${DATASETS[id].note}`, DATASETS[id].standard));
 
   return idx;
 }

@@ -10,7 +10,7 @@ import { renderResult, resultToText } from './result.js';
 import { methodIcon } from './methodIcons.js';
 import { modeA, modeB, modeC, modeD } from '../calc/design.js';
 import { CROSS_SECTIONS, fmt } from '../calc/core.js';
-import { DATASETS } from '../data/norms.js';
+import { DATASETS, dsDropLimit } from '../data/norms.js';
 import { CABLES } from '../data/cables.js';
 import * as store from '../store.js';
 import { shareText, printResult } from '../share.js';
@@ -357,8 +357,8 @@ function formDetail() {
         { v: 'TN-C', t: 'TN-C' }, { v: 'TN-S', t: 'TN-S' }, { v: 'TN-C-S', t: 'TN-C-S' },
         { v: 'TT', t: 'TT' }, { v: 'IT', t: 'IT' },
       ], hint: DATASETS.netTypes.data[S.netType]?.warn || '' })}
-      ${fieldNum({ name: 'Ze', label: 'Impedancia na začiatku Ze', de: 'Vorimpedanz', value: S.Ze, unit: 'Ω', placeholder: '0,35',
-        hint: 'Nezadané = predvolený odhad 0,35 Ω. Radšej nameraj.' })}
+      ${fieldNum({ name: 'Ze', label: 'Impedancia na začiatku Ze', de: 'Vorimpedanz', value: S.Ze, unit: 'Ω', placeholder: '0,3',
+        hint: 'Nezadané = predvolený odhad 0,3 Ω. Radšej nameraj.' })}
       ${fieldNum({ name: 'Zs', label: 'Nameraná Zs (má prednosť)', de: 'gemessene Schleifenimpedanz', value: S.Zs, unit: 'Ω',
         hint: 'Ak zadáš, Ze a dĺžka sa pre odpojenie nepoužijú.' })}
       ${fieldSelect({ name: 'circuitPurpose', label: 'Typ obvodu (pre limit úbytku)', value: S.circuitPurpose, options: [
@@ -388,7 +388,7 @@ function cableHint(id) {
 }
 
 function dropHint() {
-  const v = DATASETS.voltageDropLimits.data[store.getCountry()]?.[S.circuitPurpose];
+  const v = DATASETS[dsDropLimit(S.circuitPurpose)].data[store.getCountry()]?.[S.circuitPurpose];
   return v ? `${v} %` : 'hodnota z dát';
 }
 
@@ -512,6 +512,8 @@ function buildInputs() {
       circuits: S.circuits,
       netType: 'TN-C-S',
       circuitPurpose: S.mode === 'A' && S.preset === 'lights' ? 'lighting' : 'power',
+      /* zásuvky: zaužívaná prax, nie výsledok výpočtu — pri výsledku sa to vypíše */
+      minSection: S.mode === 'A' && S.preset === 'sockets' ? 2.5 : '',
       country,
     };
   }
@@ -569,6 +571,9 @@ function recompute(root, ctx) {
     /* aj to, čo jednoduchý režim nastavuje sám, musí byť pri výsledku vidieť */
     r.defaults.push({ what: 'izolácia', value: 'PVC', why: 'jednoduchý režim' });
     r.defaults.push({ what: 'sieť', value: 'TN (bežná domová)', why: 'jednoduchý režim' });
+    if (inputs.minSection) {
+      r.defaults.push({ what: 'zásuvky', value: 'najmenej 2,5 mm²', why: 'zaužívaná prax pri zásuvkách, nie výsledok výpočtu ani citát normy' });
+    }
   }
   lastResult = r;
 

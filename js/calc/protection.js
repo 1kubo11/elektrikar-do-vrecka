@@ -3,6 +3,7 @@
  */
 
 import { SQRT3, newResult, step, useRef, addDefault, note, check, missing, round, fmt, num, resistancePerM, largestRatingUpTo, smallestRatingAtLeast } from './core.js';
+import { dsMagnetic, dsI2, dsDisconnectTime } from '../data/norms.js';
 
 /* ───────────────── záťaž ───────────────── */
 
@@ -29,7 +30,7 @@ export function apparentPower({ I, phases, U }) {
  * Základná koordinácia istenia a kábla.
  */
 export function coordination({ Ib, In, Iz, device }, lookup, r = newResult('Koordinácia istenia')) {
-  const i2 = lookup.get('breakerI2Factor', [device]);
+  const i2 = lookup.get(dsI2(device), [device]);
   useRef(r, i2.ref);
   if (i2.missing) {
     missing(r, `súčiniteľ I2/In pre typ istenia ${device}`);
@@ -70,7 +71,7 @@ export function coordination({ Ib, In, Iz, device }, lookup, r = newResult('Koor
 
 /** Najväčšie istenie, ktoré kábel s danou Iz unesie (rešpektuje aj I2). */
 export function maxRatingForCable({ Iz, device }, lookup) {
-  const i2 = lookup.get('breakerI2Factor', [device]);
+  const i2 = lookup.get(dsI2(device), [device]);
   const ratings = lookup.get('breakerRatings', [deviceFamily(device)]);
   if (i2.missing || ratings.missing) return { In: null, refs: [i2.ref, ratings.ref] };
   const limit = Math.min(Iz, (1.45 / i2.value) * Iz);
@@ -95,12 +96,12 @@ export function disconnectOptions({ device, In, maxTime, iaManual }, lookup) {
     return { options: [{ t: lookup.get('faultLoop', ['instantTripTime']).value, ia: iaManual, src: 'zadané ručne' }], refs, missing: null };
   }
   if (device === 'B' || device === 'C' || device === 'D') {
-    const m = lookup.get('breakerMagnetic', [device, 'multiple']);
+    const m = lookup.get(dsMagnetic(device), [device, 'multiple']);
     const tInst = lookup.get('faultLoop', ['instantTripTime']);
     refs.push(m.ref, tInst.ref);
     if (m.missing) return { options: [], refs, missing: `násobok Ia pre charakteristiku ${device}` };
     return {
-      options: [{ t: tInst.value, ia: m.value * In, src: `${m.value}×In (horná hranica pásma ${lookup.get('breakerMagnetic', [device, 'range']).value})` }],
+      options: [{ t: tInst.value, ia: m.value * In, src: `${m.value}×In (horná hranica pásma ${lookup.get(dsMagnetic(device), [device, 'range']).value})` }],
       refs,
       missing: null,
     };
@@ -144,8 +145,8 @@ export function minSectionForShortCircuit({ k, Ik, t }) {
 
 /** Súčiniteľ k pre k²S². */
 export function shortCircuitK(lookup, { material, insulation, S }) {
-  if (material === 'Cu' && insulation === 'PVC' && S > 300) {
-    return lookup.get('shortCircuitK', ['Cu', 'PVC_over300']);
+  if (insulation === 'PVC' && S > 300) {
+    return lookup.get('shortCircuitK', [material, 'PVC_over300']);
   }
   return lookup.get('shortCircuitK', [material, insulation]);
 }
@@ -153,8 +154,10 @@ export function shortCircuitK(lookup, { material, insulation, S }) {
 /** Maximálny dovolený čas odpojenia podľa siete a typu obvodu. */
 export function requiredDisconnectTime(lookup, { netType, circuitKind, In }) {
   const fam = netType.startsWith('TN') ? 'TN' : netType === 'TT' ? 'TT' : 'IT';
-  const kind = circuitKind || (In <= 32 ? 'final32' : 'distribution');
-  const got = lookup.get('faultLoop', ['maxTime', fam, kind]);
+  /* krátky čas platí pre zásuvkové obvody do 63 A (pevné do 32 A) — berieme prísnejšiu hranicu */
+  const limit = lookup.get('faultLoop', ['finalCircuitMaxA']).value ?? 32;
+  const kind = circuitKind || (In <= limit ? 'final' : 'distribution');
+  const got = lookup.get(dsDisconnectTime(fam), ['maxTime', fam, kind]);
   return { t: got.value, ref: got.ref, kind, fam, missing: got.missing };
 }
 
@@ -198,8 +201,10 @@ export function faultLoopCheck(i, lookup, r = newResult('Odpojenie poruchy a skr
     if (i.Zs !== undefined && i.Zs !== '' && i.Zs !== null) {
       Ze = null; // použijeme nameranú Zs
     } else {
-      Ze = 0.35;
-      addDefault(r, 'Ze na začiatku obvodu', '0,35 Ω',
+      const zeDef = lookup.get('faultLoop', ['defaultZe']);
+      useRef(r, zeDef.ref);
+      Ze = zeDef.value;
+      addDefault(r, 'Ze na začiatku obvodu', `${fmt(Ze, 2)} Ω`,
         'nezadané ani namerané — PREDVOLENÝ ODHAD, nameraj Ze alebo Zs, inak je výsledok len orientačný');
       note(r, 'Ze je predvolený odhad. Bez merania Ze alebo Zs sa na overenie odpojenia nespoliehaj.');
     }
@@ -390,5 +395,6 @@ export function materialWarnings(lookup, { material, country, S }) {
       out.push(`Prierez ${S} mm² je pod minimom ${mc.value.powerCu} mm² pre pevné uloženie (NEOVERENÉ).`);
     }
   }
-  return { warnings: out, ref: mc.ref };
+  /* referencia na (neoverený) dataset len vtedy, keď z neho naozaj niečo zaznelo */
+  return { warnings: out, ref: out.length ? mc.ref : null };
 }

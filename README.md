@@ -104,71 +104,40 @@ dosadenými hodnotami pri každom výsledku, globálne vyhľadávanie, uložené
 posledné výpočty, obľúbené, export/import (otestovaný round-trip), zdieľanie
 textu a tlač do PDF.
 
-## 2. Čo je NEOVERENÉ
+## 2. Stav noriem a dát (11. 11. 2026)
 
-**27 z 28 datasetov je označených ako neoverených.** Jediný overený je
-`conductivity` (κCu = 56, κAl = 35) — a aj ten len preto, že je to matematický
-vstup priamo zo zadania, nie citát normy.
+Podrobný záznam prieskumu je v [NORMY-OVERENIE.md](NORMY-OVERENIE.md), v aplikácii
+je to isté na obrazovke **Viac → Normy v aplikácii**.
 
-Normové tabuľky som **nemal z overiteľného zdroja**, takže som ich nevydával za
-citát normy. To, čo je v `js/data/norms.js`, je **štartovacia osnova na
-kontrolu** — každá hodnota má uvedený predpokladaný zdroj a je označená
-`verified: false`.
+Texty noriem sú platené a v ruke som ich nemal. Platné vydania som dohľadal vo
+verejných záznamoch (DIN Media, ÚNMS SR, Bundesnetzagentur) a hodnoty porovnal
+s verejnými zdrojmi, ktoré normy citujú (príručka ABB podľa DIN VDE 0298-4,
+Schneider Electrical Installation Guide podľa IEC 60364).
 
-Úplný rozpis je v [ARCHITEKTURA.md](ARCHITEKTURA.md), kapitola 4. Skrátene:
+**19 z 36 datasetov je porovnaných so zdrojom** — tie, na ktoré siaha bežný výpočet:
+zaťažiteľnosť PVC káblov (3 žily: A1–D2 do 300 mm², Cu aj Al; 2 žily: A1–C a E do
+120 mm², Cu), prepočty na teplotu a zoskupenie, ističe B a C, súčiniteľ k, časy
+odpojenia TN/TT, prierez PE, úbytok napätia, hlásenie wallboxu v Nemecku.
+Bežný zásuvkový, svetelný alebo trojfázový obvod s ističom B/C preto vychádza zelený.
 
-| Dataset | Čo to je | Riziko |
-|---|---|---|
-| `ampacityPvc`, `ampacityXlpe` | Iz pre A1–F, PVC/XLPE, Cu/Al | **najvyššie** — od toho závisí celý návrh |
-| `fuseDisconnectCurrent` | prúdy odpojenia gG v 0,4 a 5 s | **najvyššie** — je to odhad, nie krivka výrobcu |
-| `derateAmbientAir/Ground`, `derateGrouping` | korekčné súčinitele | vysoké |
-| `breakerMagnetic` | B = 5×In, C = 10×In, D = 20×In | stredné (použité horné hranice) |
-| `shortCircuitK` | k = 115 / 143 / 76 / 94 | stredné |
-| `faultLoop` | c = 0,95, časy 0,4 / 0,2 / 5 s, t_inst 0,1 s | stredné |
-| `voltageDropLimits` | 3 % DE / 3–5 % SK | **v DE si limit určuje VNB v TAB** |
-| `minCrossSection`, `peSizing`, `neutralSizing` | prierezy a Al | stredné, DE ≠ SK |
-| `motorStart`, `motorEfficiency`, `motorCosPhi`, `contactorAC3` | orientačné motorové hodnoty | nízke (vždy zo štítku) |
-| `pvDesign` | β Uoc, −10/−15 °C, 1,25 | vždy z datasheetu panelu |
-| `wallboxRules` | ochrana a ohlásenie | **mení sa najčastejšie** |
-| `installMethods`, `netTypes`, `rcdTypes`, `breakerRatings`, `breakerI2Factor`, `groupingByMethod` | popisy a rady | nízke |
+**17 datasetov ostáva neoverených** a výsledok, ktorý sa o ne oprie, je oranžový
+a napíše, o ktorú hodnotu ide: XLPE izolácia, PVC pri 2 žilách nad 120 mm² a v zemi,
+hliník pri 2 žilách, poistky gG a NH, istič D, sieť IT, motory, fotovoltika, wallbox
+na Slovensku, minimálne prierezy a pravidlá pre hliník.
 
-Neoverené sú aj všetky referenčné tabuľky (`js/data/reference.js`): farby a staré
-značenia, IP/IK, zóny v kúpeľni, schematické značky, svorky, uťahovacie momenty —
-a preklad typov káblov SK ↔ DE (`js/data/cables.js`), ktorý nie je 1:1.
+Pri porovnaní som v pôvodných dátach našiel a opravil chyby: hodnoty pre kábel
+priamo v zemi (D2, 3 žily) boli o 15–20 % vyššie, než má byť; jednožilové káble
+(F) mali pri 3 žilách hodnoty pre 2 žily; zoskupenie 10 káblov a káblov v zemi
+malo nesprávne súčinitele; hranica krátkeho času odpojenia je 63 A, nie 32 A.
 
-## 3. Čo musíš skontrolovať podľa noriem
+## 3. Čo ešte treba skontrolovať podľa normy
 
-Poradie podľa toho, čo najviac ovplyvní výsledok:
-
-1. **Tabuľky Iz** (`ampacityPvc`, `ampacityXlpe`) proti DIN VDE 0298-4 tab. 3 /
-   STN 33 2000-5-52 / IEC 60364-5-52 tab. B.52.x. Skontroluj, **ktoré vydanie**
-   platí pre tvoju zákazku — hodnoty sa medzi vydaniami líšia. Doplň aj
-   kombinácie, ktoré sú vedome prázdne (XLPE v A1, A2, D1).
-2. **Prúdy odpojenia poistiek gG** (`fuseDisconnectCurrent`). Toto nepoužívaj
-   tak, ako to je — nahraď hodnotami z vypínacej krivky konkrétneho výrobcu.
-3. **Korekčné súčinitele** na teplotu, zeminu a zoskupenie — a aj to, ktorý typ
-   zoskupenia patrí ku ktorému spôsobu uloženia (`groupingByMethod`).
-4. **Povolený úbytok napätia** (`voltageDropLimits`). V Nemecku si limit často
-   určuje prevádzkovateľ siete v TAB — over ho u konkrétneho VNB. Na Slovensku
-   over STN 33 2000-5-52 prílohu G.
-5. **Súčiniteľ c a časy odpojenia** (`faultLoop`). Rozhodni sa, či používaš
-   c = 0,95, 0,8 alebo 1,0 — podľa toho, čo požaduje projektant alebo revízny
-   technik. Aplikácia hodnoty nezjednocuje.
-6. **Pásma magnetického vypnutia ističov** (`breakerMagnetic`) v katalógu
-   výrobcu, ktorý montuješ.
-7. **Súčiniteľ k** (`shortCircuitK`) proti IEC 60364-4-43.
-8. **Minimálne prierezy a podmienky použitia hliníka** — zvlášť pre DE a zvlášť
-   pre SK, a navyše u konkrétneho distribútora.
-9. **Ohlasovacie povinnosti pre wallbox a FV** — hranica 12 kW v DE,
-   Marktstammdatenregister, podmienky ZSD/SSD/VSD na SK. Toto sa mení
-   najčastejšie z celej aplikácie.
-10. **Zóny v kúpeľni** podľa platného vydania DIN VDE 0100-701 / STN 33 2000-7-701
-    — pravidlá pre zásuvky v zónach sa menili.
-11. **Uťahovacie momenty** — vždy majú prednosť údaje výrobcu svorky.
-
-Keď dataset skontroluješ, označ ho v **Overenie dát** ako „Overené". Vtedy a len
-vtedy začne aplikácia dávať zelené výsledky. Úpravy si môžeš exportovať a preniesť
-do iného telefónu.
+1. Čo presne menia **Zmena A12 a A1 k STN 33 2000-5-52** (A12 je povinná od 25. 11. 2025).
+2. **Prúdy odpojenia poistiek gG** — v aplikácii je len odhad, treba krivku výrobcu.
+3. **XLPE tabuľky** a zvyšok PVC tabuľky (2 žily nad 120 mm², v zemi, hliník).
+4. **Podmienky slovenských distribútorov** pre wallbox a FV.
+5. **Zóny v kúpeľni**, uťahovacie momenty a ostatné referenčné tabuľky.
+6. Platné vydanie **DIN 18015-1** a **STN 33 2000-4-43**.
 
 ## 4. Čo som nemohol overiť v tomto prostredí
 

@@ -13,6 +13,7 @@ import {
   zsMax, loopImpedancePerM, shortCircuitK, requiredDisconnectTime, faultLoopCheck,
   peCrossSection, neutralAdvice, selectivity, materialWarnings, minSectionForShortCircuit,
 } from './protection.js';
+import { dsI2, dsDropLimit } from '../data/norms.js';
 
 /* ───────────────── spoločné vstupy ───────────────── */
 
@@ -55,7 +56,7 @@ export function resolveDropLimit(i, lookup, r) {
   }
   const country = i.country || 'DE';
   const kind = i.circuitPurpose || 'power';
-  const got = lookup.get('voltageDropLimits', [country, kind]);
+  const got = lookup.get(dsDropLimit(kind), [country, kind]);
   useRef(r, got.ref);
   if (got.missing) {
     missing(r, `povolený úbytok napätia pre ${country}/${kind}`);
@@ -90,8 +91,10 @@ export function maxLengths(i, lookup, r = newResult('Maximálna dĺžka')) {
 
   let Ze = i.Ze;
   if (Ze === undefined || Ze === '' || Ze === null) {
-    Ze = 0.35;
-    addDefault(r, 'Ze na začiatku obvodu', '0,35 Ω', 'nezadané — PREDVOLENÝ ODHAD, nameraj Ze');
+    const zeDef = lookup.get('faultLoop', ['defaultZe']);
+    useRef(r, zeDef.ref);
+    Ze = zeDef.value;
+    addDefault(r, 'Ze na začiatku obvodu', `${fmt(Ze, 2)} Ω`, 'nezadané — PREDVOLENÝ ODHAD, nameraj Ze');
   } else {
     Ze = num(Ze, 'Ze', { min: 0, max: 1000, allowZero: true });
   }
@@ -270,23 +273,31 @@ export function modeA(i, lookup) {
     step(r, 'Menovitý prúd istenia', 'In = najbližší rad ≥ Ib',
       `${fmt(load.Ib, 2)} A → ${In} A`, `${In} A ${device}`);
 
-    const all = ampacityAll({ insulation, method, material, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType }, lookup);
+    const all = ampacityAll({ insulation, method, material, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType, country: i.country }, lookup);
     (all.probe.refs || []).forEach((x) => useRef(r, x));
     all.probe.defaults.forEach((d) => r.defaults.push(d));
     if (!all.list.length) {
       missing(r, `tabuľka Iz pre ${insulation}/${material}/${method}/${loadedCores} žily`);
-      note(r, 'Pre túto kombináciu nemám tabuľkové hodnoty — nevymýšľam ich. Doplň ich v Overenie dát.');
+      note(r, 'Pre túto kombináciu nemám tabuľkové hodnoty — nevymýšľam ich. Doplň ich v časti Tabuľky a hodnoty.');
       return r;
     }
 
     const lim = resolveDropLimit(i, lookup, r);
-    const i2 = lookup.get('breakerI2Factor', [device]);
+    const i2 = lookup.get(dsI2(device), [device]);
     useRef(r, i2.ref);
     const izNeeded = Math.max(In, (i2.value ? i2.value / 1.45 : 1) * In);
+
+    /* voliteľné minimum prierezu — napr. zaužívaných 2,5 mm² na zásuvky */
+    const minS = i.minSection === undefined || i.minSection === '' || i.minSection === null
+      ? 0 : num(i.minSection, 'minimálny prierez', { min: 0.1, max: 1000 });
 
     const tried = [];
     let chosen = null;
     for (const row of all.list) {
+      if (row.S < minS) {
+        tried.push({ S: row.S, iz: row.iz, izTable: row.izTable, reasons: [`pod zvoleným minimom ${fmt(minS, 1)} mm²`] });
+        continue;
+      }
       const reasons = [];
       if (row.iz < izNeeded - 1e-9) reasons.push(`Iz ${fmt(row.iz, 1)} A < potrebných ${fmt(izNeeded, 1)} A`);
 
@@ -320,6 +331,7 @@ export function modeA(i, lookup) {
       return r;
     }
 
+    useRef(r, chosen.ref);
     step(r, 'Zvolený prierez', 'najmenší S, ktorý splní Iz, úbytok, odpojenie aj skrat',
       `Iz = ${fmt(chosen.iz, 1)} A ≥ ${fmt(izNeeded, 1)} A`, `${chosen.S} mm²`);
 
@@ -400,7 +412,7 @@ export function modeB(i, lookup) {
     const phases = Number(i.phases) === 3 ? 3 : 1;
     const loadedCores = i.loadedCores ?? (phases === 3 ? 3 : 2);
 
-    const amp = ampacity({ S, material, insulation, method, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType }, lookup, newResult());
+    const amp = ampacity({ S, material, insulation, method, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType, country: i.country }, lookup, newResult());
     mergeChecks(r, amp);
     if (amp.iz === undefined) {
       r.headline = 'Chýba tabuľková hodnota Iz pre túto kombináciu.';
@@ -460,7 +472,7 @@ export function modeC(i, lookup) {
     const loadedCores = i.loadedCores ?? (phases === 3 ? 3 : 2);
 
     /* najprv overenie, že kábel vôbec unesie toto istenie */
-    const amp = ampacity({ S, material, insulation, method, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType }, lookup, newResult());
+    const amp = ampacity({ S, material, insulation, method, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType, country: i.country }, lookup, newResult());
     mergeChecks(r, amp);
     if (amp.iz !== undefined) {
       const coord = coordination({ Ib: i.current ? num(i.current, 'Ib') : 0, In, Iz: amp.iz, device }, lookup, newResult());
@@ -519,7 +531,7 @@ export function modeD(i, lookup) {
     const phases = Number(i.phases) === 3 ? 3 : 1;
     const loadedCores = i.loadedCores ?? (phases === 3 ? 3 : 2);
 
-    const all = ampacityAll({ insulation, method, material, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType }, lookup);
+    const all = ampacityAll({ insulation, method, material, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType, country: i.country }, lookup);
     (all.probe.refs || []).forEach((x) => useRef(r, x));
     all.probe.defaults.forEach((d) => r.defaults.push(d));
     if (!all.list.length) {
@@ -529,6 +541,7 @@ export function modeD(i, lookup) {
 
     const rows = [];
     for (const row of all.list) {
+      useRef(r, row.ref);
       const mx = maxRatingForCable({ Iz: row.iz, device }, lookup);
       mx.refs.forEach((x) => useRef(r, x));
       let lengths = null;
@@ -562,7 +575,7 @@ export function buildFixes(i, lookup, ctx, currentS) {
   const base = { ...i, loadedCores, material, insulation };
 
   /* väčší prierez */
-  const all = ampacityAll({ insulation, method, material, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType }, lookup);
+  const all = ampacityAll({ insulation, method, material, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType, country: i.country }, lookup);
   const bigger = all.list.filter((x) => !currentS || x.S > currentS).slice(0, 3);
   for (const b of bigger) {
     const d = lim.limit !== undefined
@@ -607,7 +620,7 @@ export function buildFixes(i, lookup, ctx, currentS) {
   /* zmena uloženia */
   const better = { A1: 'B1', A2: 'B2', B1: 'C', B2: 'C', C: 'E', D1: 'D2', E: 'E', D2: 'D2', F: 'F' }[method];
   if (better && better !== method) {
-    const alt = ampacityAll({ insulation, method: better, material, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType }, lookup);
+    const alt = ampacityAll({ insulation, method: better, material, loadedCores, ambient: i.ambient, circuits: i.circuits, groupingType: i.groupingType, country: i.country }, lookup);
     const row = alt.list.find((x) => x.S === (currentS || alt.list[0]?.S));
     if (row) {
       fixes.push({

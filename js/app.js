@@ -13,6 +13,7 @@ import * as dataView from './ui/dataView.js';
 import * as savedView from './ui/savedView.js';
 import * as searchView from './ui/searchView.js';
 import * as moreView from './ui/moreView.js';
+import * as normsView from './ui/normsView.js';
 
 /** parent = položka spodnej lišty, pod ktorú obrazovka patrí */
 const ROUTES = {
@@ -25,6 +26,7 @@ const ROUTES = {
   '#/wallbox': { view: wallboxView, parent: '#/viac' },
   '#/ulozene': { view: savedView, parent: '#/viac' },
   '#/data': { view: dataView, parent: '#/viac' },
+  '#/normy': { view: normsView, parent: '#/viac' },
   '#/hladanie': { view: searchView, parent: null },
 };
 

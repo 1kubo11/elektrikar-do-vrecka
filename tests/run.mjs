@@ -99,7 +99,8 @@ t('kontrolné hodnoty prejdú aj cez celý Result (voltageDrop)', () => {
 console.log('\n── Pravidlo farby výsledku ──');
 
 t('výsledok s neoverenou tabuľkou nikdy nie je zelený', () => {
-  const r = modeA({ power: 3.5, phases: 1, L: 20, device: 'B', material: 'Cu', insulation: 'PVC', method: 'B2', country: 'DE', Ze: 0.3 }, L);
+  // XLPE nemá overený zdroj — výsledok sa oň opiera, preto nesmie byť zelený
+  const r = modeA({ power: 3.5, phases: 1, L: 20, device: 'B', material: 'Cu', insulation: 'XLPE', method: 'C', country: 'DE', Ze: 0.3 }, L);
   const g = grade(r);
   ok(g.color !== 'green', `dostal zelenú, hoci dáta sú neoverené (${g.label})`);
   ok(r.refs.some((x) => !x.verified), 'žiadna neoverená referencia nebola zaznamenaná');
@@ -125,6 +126,75 @@ t('chýbajúca tabuľková hodnota → oranžová, nie zelená ani pád', () => 
   eq(g.color, 'orange', `čakal oranžovú, dostal ${g.color}`);
   ok(r.missing.length > 0, 'chýbajúca hodnota nebola zaznamenaná');
   ok(r.iz === undefined, 'Iz sa nemala vymyslieť');
+});
+
+/* ═══════════════ 2b. HODNOTY POROVNANÉ SO ZDROJMI (11/2026) ═══════════════ */
+console.log('\n── Hodnoty porovnané s verejnými zdrojmi ──');
+
+t('bežný zásuvkový obvod v Nemecku je zelený bez ručného odškrtávania', () => {
+  const r = modeA({ loadMode: 'current', current: 16, phases: 1, L: 20, device: 'B', material: 'Cu', insulation: 'PVC', method: 'B2', country: 'DE', minSection: 2.5 }, L);
+  const g = grade(r);
+  eq(g.color, 'green', `čakal zelenú, je ${g.color}: ${g.reason}`);
+  ok(r.refs.every((x) => x.verified), 'vo výsledku je neoverená referencia');
+});
+
+t('každý overený dataset má uvedený aspoň jeden zdroj', () => {
+  for (const [id, ds] of Object.entries(DATASETS)) {
+    if (ds.verified) ok(ds.sources && ds.sources.length > 0, `${id} je overený, ale nemá zdroj`);
+    else ok(!ds.sources || ds.sources.length === 0, `${id} je neoverený, ale tvári sa, že má zdroj`);
+  }
+});
+
+t('Nemecko má pri 1,5 mm² v zateplenej stene 15,5 A, IEC/STN menej', () => {
+  const de = ampacity({ S: 1.5, material: 'Cu', insulation: 'PVC', method: 'A1', loadedCores: 2, country: 'DE' }, L);
+  const sk = ampacity({ S: 1.5, material: 'Cu', insulation: 'PVC', method: 'A1', loadedCores: 2, country: 'SK' }, L);
+  near(de.izTable, 15.5, 0.001, 'DE A1 1,5 mm²');
+  near(sk.izTable, 14.5, 0.001, 'SK A1 1,5 mm²');
+  ok(de.refs.some((x) => x.datasetId === 'izPvcDE' && x.verified), 'DE hodnota má byť z overenej nemeckej odchýlky');
+  ok(sk.refs.some((x) => x.datasetId === 'izPvcRest' && !x.verified), 'SK hodnota má byť označená ako neoverená');
+});
+
+t('kábel priamo v zemi (D2), 3 žily — hodnoty podľa B.52.4', () => {
+  const q = { material: 'Cu', insulation: 'PVC', method: 'D2', loadedCores: 3, ambient: 20, country: 'SK' };
+  near(ampacity({ ...q, S: 2.5 }, L).izTable, 24, 0.001, 'D2 2,5 mm²');
+  near(ampacity({ ...q, S: 16 }, L).izTable, 70, 0.001, 'D2 16 mm²');
+  near(ampacity({ ...q, S: 300 }, L).izTable, 359, 0.001, 'D2 300 mm²');
+  near(ampacity({ ...q, S: 16, material: 'Al' }, L).izTable, 53, 0.001, 'D2 Al 16 mm²');
+});
+
+t('jednožilové káble F: 3 žily unesú menej než 2', () => {
+  const two = ampacity({ S: 25, material: 'Cu', insulation: 'PVC', method: 'F', loadedCores: 2 }, L);
+  const three = ampacity({ S: 25, material: 'Cu', insulation: 'PVC', method: 'F', loadedCores: 3 }, L);
+  near(two.izTable, 131, 0.001, 'F 2 žily');
+  near(three.izTable, 110, 0.001, 'F 3 žily');
+});
+
+t('zoskupenie: 10 káblov vo zväzku = 0,48; 8 káblov v zemi = 0,43', () => {
+  const a = ampacity({ S: 2.5, material: 'Cu', insulation: 'PVC', method: 'B2', loadedCores: 3, circuits: 10 }, L);
+  near(a.kGroup, 0.48, 0.001, 'zväzok 10');
+  const b = ampacity({ S: 16, material: 'Cu', insulation: 'PVC', method: 'D2', loadedCores: 3, circuits: 8 }, L);
+  near(b.kGroup, 0.43, 0.001, 'zem 8');
+  const c = ampacity({ S: 2.5, material: 'Cu', insulation: 'PVC', method: 'B2', loadedCores: 3, circuits: 11 }, L);
+  near(c.kGroup, 0.45, 0.001, '11 káblov → najbližší vyšší riadok (12)');
+});
+
+t('krátky čas odpojenia platí do 63 A, nad tým 5 s', () => {
+  const a = faultLoopCheck({ S: 16, material: 'Cu', insulation: 'PVC', device: 'B', In: 50, L: 10, netType: 'TN-S', Ze: 0.1 }, L);
+  const b = faultLoopCheck({ S: 25, material: 'Cu', insulation: 'PVC', device: 'B', In: 80, L: 10, netType: 'TN-S', Ze: 0.1 }, L);
+  eq(a.requiredTime, 0.4, 'B50 má mať 0,4 s');
+  eq(b.requiredTime, 5, 'B80 má mať 5 s');
+});
+
+t('predvolená impedancia siete je 0,3 Ω a je vypísaná', () => {
+  const r = faultLoopCheck({ S: 2.5, material: 'Cu', insulation: 'PVC', device: 'B', In: 16, L: 20, netType: 'TN-C-S' }, L);
+  near(r.Zs, 0.3 + 20 * (2 / (56 * 2.5)), 1e-6, 'Zs s predvolenou Ze');
+  ok(r.defaults.some((d) => d.what.includes('Ze') && d.value.includes('0,3')), 'predvolená Ze nie je vypísaná');
+});
+
+t('wallbox 11 kW v Nemecku: stačí ohlásiť, ale platí § 14a', () => {
+  const r = wallbox({ powerClass: 11, L: 20, country: 'DE' }, L);
+  ok(!r.checks.some((c) => c.label.includes('12 kVA')), '11 kW nemá vyžadovať súhlas');
+  ok(r.notes.some((n) => n.includes('14a')), 'chýba poznámka o § 14a');
 });
 
 /* ═══════════════ 3. Iz A KOREKCIE ═══════════════ */
@@ -300,6 +370,20 @@ t('SK a DE môžu dať iný návrh (limit úbytku sa nezjednocuje)', () => {
   ok(de.defaults.some((d) => d.value === '3 %'), 'DE limit má byť 3 %');
   ok(sk.defaults.some((d) => d.value === '5 %'), 'SK limit má byť 5 %');
   ok(sk.chosen.S <= de.chosen.S, 'pri voľnejšom limite nemá byť väčší prierez');
+});
+
+t('minimálny prierez: SK zásuvky 16 A / 20 m dajú 1,5 mm², s minimom 2,5 mm² dajú 2,5', () => {
+  const base = { loadMode: 'current', current: 16, phases: 1, L: 20, device: 'B', material: 'Cu', insulation: 'PVC', method: 'B2', country: 'SK', Ze: 0.35 };
+  const free = modeA(base, L);
+  const min = modeA({ ...base, minSection: 2.5 }, L);
+  eq(free.chosen.S, 1.5, 'bez minima');
+  eq(min.chosen.S, 2.5, 's minimom 2,5 mm²');
+  ok(min.tried.some((x) => x.S === 1.5 && x.reasons[0].includes('minimom')), 'chýba dôvod, prečo 1,5 mm² neprešlo');
+});
+
+t('minimálny prierez neznižuje návrh, keď výpočet žiada viac', () => {
+  const r = modeA({ loadMode: 'current', current: 16, phases: 1, L: 80, device: 'B', material: 'Cu', insulation: 'PVC', method: 'B2', country: 'DE', Ze: 0.35, minSection: 2.5 }, L);
+  ok(r.chosen.S > 2.5, `pri 80 m má vyjsť viac ako 2,5 mm², vyšlo ${r.chosen.S}`);
 });
 
 /* ═══════════════ 7. REŽIM B ═══════════════ */
@@ -488,7 +572,7 @@ t('11 kW → 3f/16 A, navrhne kábel a istenie', () => {
 
 t('22 kW v DE → upozornenie na schválenie nad 12 kW', () => {
   const r = wallbox({ powerClass: 22, L: 20, material: 'Cu', insulation: 'PVC', method: 'B2', country: 'DE', Ze: 0.35 }, L);
-  ok(r.checks.some((c) => c.label.includes('12 kW')), 'chýba upozornenie na 12 kW');
+  ok(r.checks.some((c) => c.label.includes('12 kVA')), 'chýba upozornenie na 12 kVA');
   ok(r.reporting && r.reporting.length, 'chýbajú ohlasovacie povinnosti');
 });
 
@@ -613,7 +697,7 @@ t('každý krok má vzorec aj dosadené hodnoty', () => {
 });
 
 t('úprava hodnoty v overlay sa prepíše do výsledku', () => {
-  const custom = createLookup({ 'ampacityPvc.B2.Cu.2.2.5': 30 });
+  const custom = createLookup({ 'izPvcHD.B2.Cu.2.2.5': 30 });
   const r = ampacity({ S: 2.5, material: 'Cu', insulation: 'PVC', method: 'B2', loadedCores: 2, ambient: 30, circuits: 1 }, custom);
   near(r.izTable, 30, 0.001, 'prepísaná hodnota sa nepoužila');
   ok(r.refs.some((x) => x.overridden), 'prepis nie je označený v referencii');

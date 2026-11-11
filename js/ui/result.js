@@ -18,6 +18,7 @@ function plainDefault(d) {
   if (w.startsWith('povolený úbytok')) return `napätie smie klesnúť najviac o ${d.value}`;
   if (w.startsWith('Ze')) return 'sieť je bežná (odhad — nemeral si ju)';
   if (w === 'izolácia') return 'kábel má PVC izoláciu';
+  if (w === 'zásuvky') return `na zásuvky dávam ${d.value}, aj keby vyšlo menej (zvyk z praxe)`;
   if (w.startsWith('prúd pre úbytok')) return 'obvod pôjde naplno';
   if (w === 'cos φ' && /orientačn/.test(d.why)) return 'cos φ som odhadol';
   if (w.startsWith('účinnosť')) return 'účinnosť som odhadol';
@@ -69,9 +70,15 @@ function renderSimple(r) {
     </div>`;
   }
 
-  const unverified = g.kind === 'unverified' ? `<p class="soft-note">
-    Tabuľky v aplikácii ešte nie sú skontrolované podľa normy, preto ber výsledok ako orientačný.
-    <a href="#/data">Skontrolovať tabuľky</a></p>` : '';
+  /* ktoré hodnoty sa nepodarilo porovnať so zdrojom — menovite, nie všeobecne */
+  const weak = [...new Set((r.refs || []).filter((x) => !x.verified).map((x) => x.title || x.datasetId))];
+  const unverified = g.kind === 'unverified' ? `<div class="soft-note">
+    Ber to ako orientačný výsledok. Pri tomto výpočte som použil hodnoty, ktoré sa mi nepodarilo porovnať so žiadnym zdrojom:
+    <ul>${weak.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>
+    <a href="#/normy">Čo je overené a čo nie</a></div>` : '';
+
+  const okNote = g.kind === 'ok' ? `<p class="used-with">Hodnoty z tabuliek sú porovnané s verejnými zdrojmi, ktoré citujú platné normy.
+    <a href="#/normy">Ktoré normy</a></p>` : '';
 
   const plainDefs = (r.defaults || []).map(plainDefault).filter(Boolean);
   const hiddenDefs = (r.defaults || []).length - plainDefs.length;
@@ -99,6 +106,7 @@ function renderSimple(r) {
     ${miss}
     ${fixes}
     ${unverified}
+    ${okNote}
     ${defs}
     ${details('Podrobnosti výpočtu', full)}
     <div class="res-actions">
@@ -191,14 +199,16 @@ function renderRefs(r) {
     ${r.refs.map((x) => `<li class="ref ${x.verified ? 'v' : 'nv'}">
       <span class="ref-state">${x.verified ? 'Overené' : 'NEOVERENÉ'}</span>
       <div>
-        <strong>${esc(x.datasetId)}</strong>${x.path ? ` <code>${esc(x.path)}</code>` : ''}
+        <strong>${esc(x.title || x.datasetId)}</strong>${x.path ? ` <code>${esc(x.path)}</code>` : ''}
         ${x.overridden ? '<span class="pill">ručne upravené</span>' : ''}
         <br><span class="ref-std">${esc(x.standard)} · vydanie ${esc(x.edition)} · ${esc(x.table)} · ${esc(x.country === 'BOTH' ? 'DE + SK' : x.country)}</span>
+        ${(x.sources || []).map((src) => `<br><span class="ref-src">Porovnané s: ${src.url
+          ? `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.name)}</a>` : esc(src.name)}</span>`).join('')}
         ${x.note ? `<br><span class="ref-note">${esc(x.note)}</span>` : ''}
       </div>
     </li>`).join('')}
   </ul>
-  <p class="muted">Hodnoty skontroluješ a označíš ako overené v <a href="#/data">Overenie dát</a>.</p>`;
+  <p class="muted">Prehľad noriem a zdrojov je v <a href="#/normy">Normy v aplikácii</a>, jednotlivé hodnoty v <a href="#/data">tabuľkách</a>.</p>`;
   return details(`Použité tabuľky a normy (${r.refs.length}${unver ? `, z toho ${unver} neoverených` : ''})`, body);
 }
 

@@ -182,7 +182,7 @@ export function pvAcCable(i, lookup) {
       `${phases === 3 ? '√3' : '2'} · ${fmt(L, 1)} · ${fmt(I, 2)} · ${resistancePerM(kap.value, S).toExponential(4)}`,
       `${fmt(d.deltaU, 2)} V (${fmt(d.percent, 2)} %)`);
 
-    const limGot = lookup.get('voltageDropLimits', [i.country || 'DE', 'pvAc']);
+    const limGot = lookup.get('voltageDropOther', [i.country || 'DE', 'pvAc']);
     useRef(r, limGot.ref);
     const lim = i.limitPercent ? num(i.limitPercent, 'limit') : limGot.value;
     if (!i.limitPercent) addDefault(r, 'povolený úbytok AC', `${lim} %`, 'z dát — pre FV sa bežne drží 1 % (NEOVERENÉ, over v TAB)');

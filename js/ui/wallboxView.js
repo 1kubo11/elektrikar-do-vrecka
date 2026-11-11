@@ -57,7 +57,7 @@ export function render(root, ctx) {
         ${detail ? `
           ${segmented({ name: 'insulation', label: 'Izolácia', value: S.insulation, options: [{ v: 'PVC', t: 'PVC' }, { v: 'XLPE', t: 'XLPE' }] })}
           ${fieldSelect({ name: 'netType', label: 'Typ siete', value: S.netType, options: ['TN-C', 'TN-S', 'TN-C-S', 'TT', 'IT'].map((x) => ({ v: x, t: x })) })}
-          ${fieldNum({ name: 'Ze', label: 'Ze na začiatku', value: S.Ze, unit: 'Ω', placeholder: '0,35' })}` : ''}
+          ${fieldNum({ name: 'Ze', label: 'Ze na začiatku', value: S.Ze, unit: 'Ω', placeholder: '0,3' })}` : ''}
       </div>`)}
     </form>
     <div id="wb-results"></div>

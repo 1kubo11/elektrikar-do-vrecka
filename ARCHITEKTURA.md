@@ -94,6 +94,11 @@ pri výsledku ako „predvolené“.
 
 ## 4. Dáta, ktoré NEVIEM overiť
 
+> **Tento zoznam je pôvodný stav z 8. 11. 2026.** Od 11. 11. 2026 je 19 z 36 datasetov
+> porovnaných s verejnými zdrojmi a tabuľka Iz je rozdelená na `izPvcHD`, `izPvcDE`,
+> `izPvcRest` a `izXlpe`. Aktuálny stav je v [NORMY-OVERENIE.md](NORMY-OVERENIE.md)
+> a v aplikácii pod Viac → Normy v aplikácii.
+
 Toto je úplný zoznam. Všetko nižšie je v `norms.js` označené
 `verified: false` a musí sa skontrolovať proti papierovej/platnej norme. Hodnoty
 tam sú ako **štartovacia osnova s predpokladaným zdrojom**, nie ako citát normy.

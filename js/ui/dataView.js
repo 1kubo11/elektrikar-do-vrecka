@@ -1,10 +1,10 @@
 /** Overenie dát — kontrola, oprava a označenie normových hodnôt. */
 
 import { esc, toast, details } from './dom.js';
-import { DATASETS, DATA_VERSION } from '../data/norms.js';
+import { DATASETS, DATA_VERSION, SOURCES } from '../data/norms.js';
 import * as store from '../store.js';
 
-export const title = 'Overenie dát';
+export const title = 'Tabuľky a hodnoty';
 
 export function render(root, ctx) {
   const ov = store.getOverrides();
@@ -13,16 +13,15 @@ export function render(root, ctx) {
   const editedCount = Object.keys(ov).filter((k) => !k.endsWith('.__verified')).length;
 
   root.innerHTML = `
-    <div class="banner warn">
-      <strong>Toto je najdôležitejšia obrazovka aplikácie.</strong>
-      Normové tabuľky v aplikácii som nemal z overiteľného zdroja, takže sú označené
-      ako <b>NEOVERENÉ</b>. Sú to štartovacie hodnoty na kontrolu, nie citát normy.
-      Prejdi ich proti platnej norme, oprav, čo nesedí, a potom označ dataset ako
-      <b>Overené</b>. Kým to neurobíš, výsledok opretý o takú hodnotu nebude zelený.
-    </div>
+    <p class="soft-note">
+      <b>Zelené</b> tabuľky sú porovnané s verejným zdrojom, ktorý cituje platnú normu — zdroj je pri každej uvedený.
+      <b>Červené</b> sa porovnať nepodarilo: sú orientačné a výsledok, ktorý sa o ne opiera, nebude zelený.
+      Keď si červenú tabuľku skontroluješ podľa normy sám, oprav hodnoty a prepni ju na „Overené“.
+      Prehľad noriem a vydaní je v <a href="#/normy">Normy v aplikácii</a>.
+    </p>
 
     <div class="stats">
-      <div><b>${verifiedCount}</b> / ${ids.length}<span>datasetov označených ako overené</span></div>
+      <div><b>${verifiedCount}</b> / ${ids.length}<span>tabuliek porovnaných so zdrojom</span></div>
       <div><b>${editedCount}</b><span>ručne upravených hodnôt</span></div>
       <div><b>${esc(DATA_VERSION)}</b><span>verzia dát</span></div>
     </div>
@@ -35,7 +34,7 @@ export function render(root, ctx) {
     <textarea id="io-box" class="io-box" placeholder="Sem vlož JSON export a stlač Importovať." hidden></textarea>
 
     <div id="ds-list">
-      ${ids.map((id) => card(id, ov)).join('')}
+      ${[...ids].sort((a, b) => isVerified(a, ov) - isVerified(b, ov)).map((id) => card(id, ov)).join('')}
     </div>
   `;
 
@@ -128,8 +127,8 @@ function card(id, ov) {
   return `<article class="ds ${ver ? 'ok' : 'nv'}">
     <header>
       <div>
-        <h3>${esc(id)}</h3>
-        <p class="ds-meta">${esc(ds.standard)} · vydanie ${esc(ds.edition)} · ${esc(ds.table)} · ${esc(ds.country === 'BOTH' ? 'DE + SK' : ds.country)}</p>
+        <h3 class="ds-title">${esc(ds.title || id)}</h3>
+        <p class="ds-meta">${esc(ds.standard)} · vydanie ${esc(ds.edition)} · ${esc(ds.table)} · ${esc(ds.country === 'BOTH' ? 'DE + SK' : ds.country)} · <code>${esc(id)}</code></p>
       </div>
       <label class="switch">
         <input type="checkbox" data-verify="${esc(id)}" ${ver ? 'checked' : ''}>
@@ -137,6 +136,8 @@ function card(id, ov) {
       </label>
     </header>
     <p class="ds-note">${esc(ds.note)}</p>
+    ${(ds.sources || []).map((k) => SOURCES[k]).filter(Boolean).map((src) => `<p class="ds-src">Porovnané s: ${src.url
+      ? `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.name)}</a>` : esc(src.name)}</p>`).join('')}
     ${edited ? `<p class="pill">${edited} ručne upravených hodnôt</p>` : ''}
     ${leaves.length ? details(`Hodnoty (${leaves.length})`, `
       ${leaves.length > 25 ? `<input type="search" data-filter placeholder="Filtruj cestu, napr. B2.Cu.3" class="filter">` : ''}
