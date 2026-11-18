@@ -13,14 +13,18 @@
  * o ňu opiera, nikdy nebude zelený.
  */
 
-export const DATA_VERSION = '2026.11.11';
-export const CHECKED = '2026-11-11';
+export const DATA_VERSION = '2026.11.17';
+export const CHECKED = '2026-11-17';
 
 /* ───────────────────────── zdroje ───────────────────────── */
 
 export const SOURCES = {
+  abb2026: {
+    name: 'ABB — Kabel- und Leitungsdimensionierung, Rev H 07/2026 (stav polovica 2026), tabuľky „nach DIN VDE 0298-4:2023-06“',
+    url: 'https://library.e.abb.com/public/53c5618dff8044819dbfedec4ea85936/2CDC400027D0104_Rev_H_Kabel_Leitungsdim_DE_Datasheet_0726_Web.pdf',
+  },
   abb: {
-    name: 'ABB — Kabel- und Leitungsdimensionierung (2CDC400027D0104), tabuľky podľa DIN VDE 0298-4, DIN VDE 0100-430, DIN EN 60898-1',
+    name: 'ABB — Kabel- und Leitungsdimensionierung, Rev D 02/2018, tabuľky podľa DIN VDE 0298-4:2013-06, DIN VDE 0100-430, DIN EN 60898-1',
     url: 'https://content.voltimum.com/de/118048/2cdc400027d0104_revd_02-2018_72dpi_0.pdf',
   },
   eigSizing: {
@@ -43,6 +47,10 @@ export const SOURCES = {
     name: 'Schneider Electric — Electrical Installation Guide: Sizing of protective earthing conductor (IEC 60364-5-54)',
     url: 'https://www.electrical-installation.org/enwiki/Sizing_of_protective_earthing_conductor',
   },
+  eigEv: {
+    name: 'Schneider Electric — Electrical Installation Guide: EV charging (IEC 60364-7-722)',
+    url: 'https://www.electrical-installation.org/enwiki/EV_charging_-_electrical_installation_design',
+  },
   bnetza: {
     name: 'Bundesnetzagentur — otázky a odpovede k wallboxom (§ 19 NAV, § 14a EnWG)',
     url: 'https://www.bundesnetzagentur.de/DE/Vportal/Energie/E_Mobilitaet/_faq/Wallbox_table.html',
@@ -55,6 +63,10 @@ export const SOURCES = {
     name: 'ÚNMS SR — STN 33 2000-5-52 (záznam o norme a jej zmenách)',
     url: 'https://normy.normoff.gov.sk/norma/114149/',
   },
+  normoffA12: {
+    name: 'ÚNMS SR — STN 33 2000-5-52/A12:2023, náhľad (obsah zmeny)',
+    url: 'https://normy.normoff.gov.sk/norma/137654/',
+  },
   spec: { name: 'Zadanie aplikácie (hodnota zvolená zadávateľom, nie normou)', url: '' },
 };
 
@@ -64,23 +76,26 @@ export const SOURCES = {
 export const STANDARDS = [
   { country: 'DE', id: 'DIN VDE 0298-4', edition: '2023-06 + Berichtigung 1:2023-10', found: true,
     topic: 'Koľko prúdu kábel unesie, spôsoby uloženia, prepočty na teplotu a zoskupenie',
-    note: 'Nové vydanie doplnilo spôsoby uloženia v tabuľke 9 a prílohu C. Hodnoty tabuľky 3 som porovnal so zdrojom, ktorý cituje vydanie 2013-06.',
+    note: 'Nahradila vydanie 2013-06. Hodnoty tabuľky pre meď (2 a 3 žily, A1–C, E, F do 120 mm²) sú porovnané s príručkou ABB z roku 2026, ktorá výslovne cituje vydanie 2023-06.',
     url: 'https://www.dinmedia.de/en/standard/din-vde-0298-4/365464693' },
   { country: 'DE', id: 'DIN VDE 0100-410', edition: '2018-10', found: true,
     topic: 'Ochrana pred úrazom, časy odpojenia, chránič pri zásuvkách',
     note: 'Krátke časy odpojenia (0,4 s) platia pre zásuvkové obvody do 63 A a pevne pripojené spotrebiče do 32 A.',
-    url: 'https://forum-verlag.com/blog-es/din-vde-0100-410-elektrischer-schlag' },
+    url: 'https://www.dinmedia.de/en/standard/din-vde-0100-410/290956019' },
   { country: 'DE', id: 'DIN VDE 0100-430', edition: '2010-10', found: true,
     topic: 'Ochrana pri preťažení a skrate (Ib ≤ In ≤ Iz, I2 ≤ 1,45 · Iz)',
-    note: 'Novšie vydanie som nenašiel.', url: '' },
+    note: 'Platná. Existuje návrh nového vydania z 2021-12, zatiaľ nevyšiel.',
+    url: 'https://www.dinmedia.de/en/standard/din-vde-0100-430/133288435' },
   { country: 'DE', id: 'DIN VDE 0100-520', edition: '2023-06, Beiblatt 2:2023-10', found: true,
     topic: 'Káble a vedenia, úbytok napätia, najväčšie dĺžky vedení',
-    note: 'Beiblatt 2 počíta najväčšie dĺžky s impedanciou siete 0,3 Ω.',
+    note: 'Nemecké prevzatie HD 60364-5-52:2011 vrátane zmeny A12:2022 (tej istej ako slovenská Zmena A12). Beiblatt 2 počíta najväčšie dĺžky s impedanciou siete 0,3 Ω.',
     url: 'https://www.dinmedia.de/en/standard/din-vde-0100-520/364929335' },
   { country: 'DE', id: 'DIN VDE 0100-540', edition: '2024-06', found: true,
-    topic: 'Uzemnenie a ochranné vodiče (prierez PE)', note: 'Nahradila vydanie 2012-06.', url: '' },
-  { country: 'DE', id: 'DIN 18015-1', edition: 'vydanie som nedohľadal', found: false,
-    topic: 'Elektrické inštalácie v bytoch — úbytok napätia najviac 3 % za elektromerom', note: '', url: '' },
+    topic: 'Uzemnenie a ochranné vodiče (prierez PE)', note: 'Nahradila vydanie 2012-06.',
+    url: 'https://www.dinmedia.de/en/standard/din-vde-0100-540/378181435' },
+  { country: 'DE', id: 'DIN 18015-1', edition: '2020-05', found: true,
+    topic: 'Elektrické inštalácie v bytoch — úbytok napätia najviac 3 % za elektromerom', note: 'Nahradila vydanie 2013-09.',
+    url: 'https://www.dinmedia.de/de/norm/din-18015-1/320242977' },
   { country: 'DE', id: 'DIN EN 60898-1 (VDE 0641-11)', edition: 'vydanie som nedohľadal', found: false,
     topic: 'Ističe B, C, D — kedy vypínajú', note: '', url: '' },
   { country: 'DE', id: '§ 19 NAV a § 14a EnWG', edition: 'stav 2026', found: true,
@@ -90,19 +105,23 @@ export const STANDARDS = [
 
   { country: 'SK', id: 'STN 33 2000-5-52', edition: '04/2012 + Oprava 1 (07/14), Zmena A11 (05/18), Zmena A12 (11/23), Zmena A1 (11/25)', found: true,
     topic: 'Koľko prúdu kábel unesie, spôsoby uloženia, úbytok napätia',
-    note: 'Zmena A12 je povinná od 25. 11. 2025. Čo presne zmeny A12 a A1 menia, som nezistil — ich texty sú platené.',
+    note: 'Zmena A12 (povinná od 25. 11. 2025) sa týka požiarnych tried káblov podľa nariadenia CPR (EN 13501-6), článku 527 a národných príloh — nie zaťažiteľnosti ani úbytku napätia. Zmena A1 je prevzatie IEC 60364-5-52:2009/AMD1:2024; jej obsah som nevidel, bez nej sa norma smie používať do 31. 1. 2028.',
     url: 'https://normy.normoff.gov.sk/norma/114149/' },
-  { country: 'SK', id: 'STN 33 2000-4-41', edition: '03/2019', found: true,
+  { country: 'SK', id: 'STN 33 2000-4-41', edition: '03/2019 + Zmena A11 (03/19), Zmena A12 (01/20), Oprava O1 (04/20)', found: true,
     topic: 'Ochrana pred zásahom elektrickým prúdom, časy odpojenia',
-    note: 'Vydanie je citované v zázname ÚNMS; platnosť a zmeny som samostatne neoveroval.', url: '' },
-  { country: 'SK', id: 'STN 33 2000-4-43', edition: 'vydanie som nedohľadal', found: false,
-    topic: 'Ochrana pri nadprúde a skrate', note: '', url: '' },
-  { country: 'SK', id: 'STN 33 2000-5-54', edition: '2012 + Zmena A11 (2018)', found: true,
-    topic: 'Uzemnenie a ochranné vodiče (prierez PE)',
-    note: 'Citované v zázname ÚNMS; platnosť som samostatne neoveroval.', url: '' },
+    note: 'Prevzatie IEC 60364-4-41:2005/AMD1:2017 — tá istá zmena, ktorá rozšírila krátke časy odpojenia na zásuvkové obvody do 63 A.',
+    url: 'https://normy.normoff.gov.sk/norma/127671/' },
+  { country: 'SK', id: 'STN 33 2000-4-43', edition: '07/2024', found: true,
+    topic: 'Ochrana pri nadprúde a skrate',
+    note: 'Prevzatie IEC 60364-4-43:2023. Staršie vydanie z 12/2010 sa smelo používať súbežne len do 23. 8. 2026.',
+    url: 'https://normy.normoff.gov.sk/norma/138590/' },
+  { country: 'SK', id: 'STN 33 2000-5-54', edition: '08/2012 + Oprava 1 (07/14), Zmena A11 (02/18), Zmena A1 (11/23)', found: true,
+    topic: 'Uzemnenie a ochranné vodiče (prierez PE)', note: '',
+    url: 'https://normy.normoff.gov.sk/norma/115109/' },
   { country: 'SK', id: 'STN 33 2000-7-722', edition: '12/2019', found: true,
     topic: 'Napájanie elektrických vozidiel (wallbox)',
-    note: 'Nahradila staršie vydanie. Podmienky distribútorov (ZSD, SSD, VSD) som nedohľadal.', url: '' },
+    note: 'Podmienky distribútorov (ZSD, SSD, VSD) som nedohľadal.',
+    url: 'https://normy.normoff.gov.sk/norma/129793/' },
 ];
 
 /* ───────────────────────── rady a konštanty ───────────────────────── */
@@ -162,13 +181,17 @@ export const DATASETS = {
     edition: 'DE 2023-06 / SK 04/2012',
     table: 'B.52.2, B.52.4, B.52.10 (PVC 70 °C)',
     verified: true,
-    sources: ['abb', 'eigSizing', 'din0298', 'normoff552'],
+    sources: ['abb2026', 'abb', 'eigSizing', 'din0298', 'normoff552'],
     note:
-      '3 zaťažené žily (Cu aj Al, A1–D2, 1,5–300 mm²) sú porovnané s tabuľkou B.52.4. ' +
-      '2 zaťažené žily a uloženia E, F (Cu, do 120 mm²) sú porovnané s tabuľkou 3 ' +
-      'DIN VDE 0298-4, ktorá je nemeckým prevzatím toho istého harmonizačného ' +
-      'dokumentu ako STN. Zdroj s hodnotami cituje vydanie 2013-06; vydanie 2023-06 ' +
-      'podľa vydavateľa menilo tabuľku 9 a prílohu C, nie hodnoty tabuľky 3.',
+      'Meď, 2 aj 3 zaťažené žily, A1–C, E, F do 120 mm²: porovnané s tabuľkou ' +
+      'DIN VDE 0298-4:2023-06 (príručka ABB 2026). Meď aj hliník, 3 zaťažené žily, ' +
+      'A1–D2 do 300 mm²: porovnané s IEC 60364-5-52 tab. B.52.4. Všetkých 283 hodnôt ' +
+      'sedí. Pre Slovensko sú 2-žilové hodnoty overené nepriamo: pochádzajú z nemeckého ' +
+      'prevzatia toho istého HD 60364-5-52; nemecké 3-žilové hodnoty sa s IEC zhodujú ' +
+      'vo všetkých 50 spoločných bunkách a zjednodušená IEC tabuľka C.52.1 neukazuje ' +
+      'žiadnu vyššiu hodnotu. Zem (D1, D2) je podľa IEC (merný odpor zeme 2,5 K·m/W, ' +
+      'plné zaťaženie); v Nemecku sa zemné káble často počítajú podľa DIN VDE 0276-603 ' +
+      's miernejšími predpokladmi — hodnoty v aplikácii sú na strane bezpečnosti.',
     data: {
       A1: {
         Cu: {
@@ -238,7 +261,7 @@ export const DATASETS = {
     edition: '2023-06',
     table: 'tab. 3, poznámka k 1,5 mm² (A1, A2 — 2 zaťažené žily)',
     verified: true,
-    sources: ['abb', 'din0298'],
+    sources: ['abb2026', 'abb', 'din0298'],
     note:
       'V Nemecku platí pre 1,5 mm² a 2 zaťažené žily v uloženiach A1 a A2 hodnota 15,5 A. ' +
       'Je to národná odchýlka — v IEC/STN je hodnota nižšia.',
@@ -468,9 +491,11 @@ export const DATASETS = {
     verified: true,
     sources: ['eigSizing'],
     note:
-      'Priradenie riadku tabuľky k spôsobu uloženia. Pri uložení C počítam s jednou ' +
-      'vrstvou káblov vedľa seba; keď sú zviazané do zväzku, platí prísnejší riadok.',
-    data: { A1: 'bunched', A2: 'bunched', B1: 'bunched', B2: 'bunched', C: 'singleLayer', D1: 'buriedDucts', D2: 'buried', E: 'perforatedTray', F: 'perforatedTray' },
+      'Riadok „zviazané, v trubke, na povrchu“ platí podľa B.52.17 pre všetky uloženia ' +
+      'A až F, preto ho aplikácia berie predvolene — je najprísnejší. Keď ležia káble ' +
+      'v jednej vrstve na stene alebo na rošte, súčiniteľ je miernejší (riadky ' +
+      '„singleLayer“ a „perforatedTray“ v tabuľke zoskupenia).',
+    data: { A1: 'bunched', A2: 'bunched', B1: 'bunched', B2: 'bunched', C: 'bunched', D1: 'buriedDucts', D2: 'buried', E: 'bunched', F: 'bunched' },
   },
 
   /* ═══════════════════ 4. SPÔSOBY ULOŽENIA (popis) ═══════════════════ */
@@ -500,18 +525,32 @@ export const DATASETS = {
   /* ═══════════════════ 5. ISTENIE ═══════════════════ */
   breakerRatings: {
     id: 'breakerRatings',
-    title: 'vyrábané veľkosti ističov a poistiek',
+    title: 'vyrábané veľkosti ističov',
     country: 'BOTH',
-    standard: 'Výrobný rad (nie normová tabuľka)',
+    standard: 'DIN EN 60898-1 — výrobný rad (nie normová tabuľka)',
     edition: '—',
-    table: 'menovité prúdy',
+    table: 'menovité prúdy ističov',
     verified: true,
-    sources: ['abb'],
-    note: 'Bežne vyrábané veľkosti. Nie je to hodnota z normy, len zoznam, z ktorého sa vyberá.',
+    sources: ['abb2026', 'abb'],
+    note: 'Bežne vyrábané veľkosti ističov B a C. Všetky sa vyskytujú v tabuľkách ABB. Nie je to hodnota z normy, len zoznam, z ktorého sa vyberá.',
     data: {
       mcb: [6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125],
-      gG: [2, 4, 6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400],
-      nh: [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630],
+    },
+  },
+
+  fuseRatings: {
+    id: 'fuseRatings',
+    title: 'vyrábané veľkosti poistiek',
+    country: 'BOTH',
+    standard: 'IEC 60269 — výrobný rad',
+    edition: 'neoverené',
+    table: 'menovité prúdy poistiek gG a NH',
+    verified: false,
+    sources: [],
+    note: 'Bežné veľkosti poistiek. V Nemecku sú časté aj 35 A (NEOZED, DIAZED). Zoznam som neporovnal so zdrojom.',
+    data: {
+      gG: [2, 4, 6, 10, 16, 20, 25, 32, 35, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400],
+      nh: [16, 20, 25, 32, 35, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630],
     },
   },
 
@@ -523,7 +562,7 @@ export const DATASETS = {
     edition: 'vydanie nedohľadané',
     table: 'pásmo okamžitého vypnutia',
     verified: true,
-    sources: ['abb'],
+    sources: ['abb2026', 'abb'],
     note:
       'Počítam s HORNOU hranicou pásma, pri ktorej istič vypne do 0,1 s: ' +
       'B = 5×In (pásmo 3–5), C = 10×In (pásmo 5–10).',
@@ -621,11 +660,11 @@ export const DATASETS = {
     id: 'shortCircuitK',
     title: 'koľko tepla kábel znesie pri skrate',
     country: 'BOTH',
-    standard: 'IEC 60364-4-43 / DIN VDE 0100-430:2010-10, 0100-540:2024-06',
-    edition: 'IEC / DE 2010-10',
+    standard: 'IEC 60364-4-43 / DIN VDE 0100-430:2010-10, 0100-540:2024-06 / STN 33 2000-4-43:2024',
+    edition: 'DE 2010-10 / SK 07/2024',
     table: 'tab. 43A (súčiniteľ k)',
     verified: true,
-    sources: ['eigK', 'abb'],
+    sources: ['eigK', 'abb2026'],
     note:
       'Súčiniteľ k pre k²·S² ≥ I²·t. Platí pre vodiče, ktoré sa pri skrate ' +
       'ohrejú z prevádzkovej na dovolenú teplotu.',
@@ -643,7 +682,7 @@ export const DATASETS = {
     edition: 'DE 2018-10 / SK 03/2019',
     table: 'tab. 41.1 — najdlhšie časy odpojenia pri U0 = 230 V',
     verified: true,
-    sources: ['eigShock', 'abb', 'spec'],
+    sources: ['eigShock', 'abb2026', 'abb', 'spec'],
     note:
       'TN: 0,4 s, TT: 0,2 s — pre zásuvkové obvody do 63 A a pevne pripojené spotrebiče ' +
       'do 32 A. Ostatné obvody: TN 5 s, TT 1 s. Aplikácia berie krátky čas pre všetko ' +
@@ -722,7 +761,7 @@ export const DATASETS = {
     title: 'prierez ochranného vodiča',
     country: 'BOTH',
     standard: 'IEC 60364-5-54 / DIN VDE 0100-540:2024-06 / STN 33 2000-5-54:2012',
-    edition: 'DE 2024-06 / SK 2012 + A11',
+    edition: 'DE 2024-06 / SK 08/2012 + A11 + A1',
     table: 'tab. 54.2 (zjednodušená metóda)',
     verified: true,
     sources: ['eigPe'],
@@ -758,12 +797,12 @@ export const DATASETS = {
     title: 'povolený úbytok napätia',
     country: 'BOTH',
     standard: 'DE: DIN 18015-1 · SK: STN 33 2000-5-52 príl. G (IEC tab. G.52.1)',
-    edition: 'DE vydanie nedohľadané / SK 04/2012',
+    edition: 'DE 2020-05 / SK 04/2012',
     table: 'povolený úbytok napätia [%]',
     verified: true,
-    sources: ['abb', 'eigDrop'],
+    sources: ['abb2026', 'abb', 'eigDrop'],
     note:
-      'Nemecko: spolu najviac 3 % za elektromerom až po spotrebič (DIN 18015-1). ' +
+      'Nemecko: spolu najviac 3 % za elektromerom až po spotrebič (DIN 18015-1:2020-05). ' +
       'Slovensko podľa IEC: 3 % svetelné obvody, 5 % ostatné, od začiatku inštalácie. ' +
       'Wallbox je silový obvod. Prevádzkovateľ siete alebo projekt môžu žiadať menej.',
     data: {
@@ -898,8 +937,8 @@ export const DATASETS = {
     edition: 'stav 11/2026',
     table: 'hlásenie, súhlas a riadenie',
     verified: true,
-    sources: ['bnetza'],
-    note: 'Podľa stránky Bundesnetzagentur. Podmienky konkrétneho prevádzkovateľa siete (TAB) sa môžu líšiť v detailoch.',
+    sources: ['bnetza', 'eigEv'],
+    note: 'Hlásenie a súhlas podľa stránky Bundesnetzagentur, chránič podľa IEC 60364-7-722 (RCD typ B, alebo typ A/F spolu s RDC-DD podľa IEC 62955). Podmienky konkrétneho prevádzkovateľa siete (TAB) sa môžu líšiť v detailoch.',
     data: {
       approvalAboveKva: 12,
       controllableAboveKw: 4.2,
@@ -953,6 +992,7 @@ export const dsDropLimit = (kind) => (['lighting', 'power', 'wallbox'].includes(
 export const dsDisconnectTime = (family) => (family === 'IT' ? 'faultLoopIT' : 'faultLoop');
 export const dsGrouping = (type) => (type === 'buriedDucts' ? 'derateGroupingDucts' : 'derateGrouping');
 export const dsWallboxRules = (country) => (country === 'SK' ? 'wallboxRulesSK' : 'wallboxRulesDE');
+export const dsRatings = (family) => (family === 'mcb' ? 'breakerRatings' : 'fuseRatings');
 
 /* ═══════════════════ VYHĽADÁVANIE V DÁTACH ═══════════════════ */
 

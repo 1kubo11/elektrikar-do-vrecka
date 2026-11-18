@@ -100,7 +100,7 @@ export function pvString(i, lookup) {
     }
 
     /* poistky reťazcov */
-    const ratings = lookup.get('breakerRatings', ['gG']);
+    const ratings = lookup.get('fuseRatings', ['gG']);
     useRef(r, ratings.ref);
     const fuse = smallestRatingAtLeast(ratings.value, iscDesign);
     if (fuse) {

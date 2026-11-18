@@ -3,7 +3,7 @@
  * POZOR: pri zmene ktoréhokoľvek súboru zvýš CACHE, inak telefón drží starú verziu.
  */
 
-const CACHE = 'edv-v1.3.0';
+const CACHE = 'edv-v1.3.1';
 
 const PRECACHE = [
   './',

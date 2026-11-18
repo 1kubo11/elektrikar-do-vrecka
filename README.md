@@ -104,40 +104,29 @@ dosadenými hodnotami pri každom výsledku, globálne vyhľadávanie, uložené
 posledné výpočty, obľúbené, export/import (otestovaný round-trip), zdieľanie
 textu a tlač do PDF.
 
-## 2. Stav noriem a dát (11. 11. 2026)
+## 2. Stav noriem a dát (kontrola 17.–18. 11. 2026)
 
-Podrobný záznam prieskumu je v [NORMY-OVERENIE.md](NORMY-OVERENIE.md), v aplikácii
-je to isté na obrazovke **Viac → Normy v aplikácii**.
+Podrobný záznam je v [NORMY-OVERENIE.md](NORMY-OVERENIE.md), v aplikácii pod
+**Viac → Normy v aplikácii**.
 
-Texty noriem sú platené a v ruke som ich nemal. Platné vydania som dohľadal vo
-verejných záznamoch (DIN Media, ÚNMS SR, Bundesnetzagentur) a hodnoty porovnal
-s verejnými zdrojmi, ktoré normy citujú (príručka ABB podľa DIN VDE 0298-4,
-Schneider Electrical Installation Guide podľa IEC 60364).
+Texty noriem sú platené. Vydania sú overené priamo v záznamoch DIN Media a ÚNMS SR,
+hodnoty porovnané programom so zdrojmi, ktoré normy citujú — vrátane príručky ABB
+z roku 2026 postavenej na **DIN VDE 0298-4:2023-06**.
 
-**19 z 36 datasetov je porovnaných so zdrojom** — tie, na ktoré siaha bežný výpočet:
-zaťažiteľnosť PVC káblov (3 žily: A1–D2 do 300 mm², Cu aj Al; 2 žily: A1–C a E do
-120 mm², Cu), prepočty na teplotu a zoskupenie, ističe B a C, súčiniteľ k, časy
-odpojenia TN/TT, prierez PE, úbytok napätia, hlásenie wallboxu v Nemecku.
-Bežný zásuvkový, svetelný alebo trojfázový obvod s ističom B/C preto vychádza zelený.
-
-**17 datasetov ostáva neoverených** a výsledok, ktorý sa o ne oprie, je oranžový
-a napíše, o ktorú hodnotu ide: XLPE izolácia, PVC pri 2 žilách nad 120 mm² a v zemi,
-hliník pri 2 žilách, poistky gG a NH, istič D, sieť IT, motory, fotovoltika, wallbox
-na Slovensku, minimálne prierezy a pravidlá pre hliník.
-
-Pri porovnaní som v pôvodných dátach našiel a opravil chyby: hodnoty pre kábel
-priamo v zemi (D2, 3 žily) boli o 15–20 % vyššie, než má byť; jednožilové káble
-(F) mali pri 3 žilách hodnoty pre 2 žily; zoskupenie 10 káblov a káblov v zemi
-malo nesprávne súčinitele; hranica krátkeho času odpojenia je 63 A, nie 32 A.
+- **19 z 37 datasetov je porovnaných so zdrojom**, 841 hodnôt prešlo porovnaním:
+  žiadna overená hodnota sa nelíši od zdroja a žiadna nie je bez zdroja.
+- Pre Slovensko sú hodnoty pre 2 zaťažené žily overené nepriamo (cez nemecké prevzatie
+  toho istého HD 60364-5-52) — podrobne v zázname.
+- **Zmena A12 k STN 33 2000-5-52** sa týka požiarnych tried káblov, nie zaťažiteľnosti;
+  **Zmena A1** (IEC AMD1:2024) — obsah som nevidel, STN sa bez nej smie používať do 31. 1. 2028.
 
 ## 3. Čo ešte treba skontrolovať podľa normy
 
-1. Čo presne menia **Zmena A12 a A1 k STN 33 2000-5-52** (A12 je povinná od 25. 11. 2025).
+1. Čo presne mení **Zmena A1 k STN 33 2000-5-52** (IEC 60364-5-52:2009/AMD1:2024) — bez nej sa STN smie používať do 31. 1. 2028.
 2. **Prúdy odpojenia poistiek gG** — v aplikácii je len odhad, treba krivku výrobcu.
 3. **XLPE tabuľky** a zvyšok PVC tabuľky (2 žily nad 120 mm², v zemi, hliník).
 4. **Podmienky slovenských distribútorov** pre wallbox a FV.
 5. **Zóny v kúpeľni**, uťahovacie momenty a ostatné referenčné tabuľky.
-6. Platné vydanie **DIN 18015-1** a **STN 33 2000-4-43**.
 
 ## 4. Čo som nemohol overiť v tomto prostredí
 

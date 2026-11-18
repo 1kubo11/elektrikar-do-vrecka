@@ -41,6 +41,28 @@ export function izSections(lookup, { insulation, method, material, loadedCores, 
   return [...set].sort((a, b) => a - b);
 }
 
+/**
+ * Súčiniteľ pre 3. harmonickú v štvor- a päťžilových kábloch (IEC 60364-5-52 tab. E.52.1),
+ * prepočítaný na fázový prúd. Nad 33 % sa kábel vyberá podľa prúdu v N ≈ 3·h·Ib,
+ * čo je to isté ako znížiť únosnosť pre fázový prúd súčiniteľom k / (3·h).
+ */
+export function harmonicFactor(lookup, thd) {
+  const t = lookup.get('neutralSizing', ['thresholds']);
+  if (t.missing) return { factor: 1, ref: t.ref, missing: true };
+  const row = t.value.find((x) => thd <= x.thdMax) || t.value[t.value.length - 1];
+  const neutralBased = thd > 33;
+  const factor = neutralBased ? row.factor / (3 * (thd / 100)) : row.factor;
+  return { factor, tableFactor: row.factor, neutralBased, ref: t.ref };
+}
+
+const GROUP_LABEL = {
+  bunched: 'vo zväzku, v trubke alebo tesne pri sebe',
+  singleLayer: 'v jednej vrstve na stene',
+  perforatedTray: 'v jednej vrstve na dierovanom rošte',
+  buried: 'v zemi, tesne pri sebe',
+  buriedDucts: 'v chráničkách v zemi',
+};
+
 /** Korekčný súčiniteľ na teplotu. */
 export function tempFactor(lookup, { insulation, method, ambient }) {
   const dsId = isGroundMethod(method) ? 'derateAmbientGround' : 'derateAmbientAir';
@@ -120,6 +142,20 @@ export function ampacity(i, lookup, r = newResult('Prúdová zaťažiteľnosť I
 
   if (kT.factor === undefined) missing(r, `korekcia na teplotu ${ambient} °C pre ${insulation}`);
   if (kG.factor === undefined) missing(r, `korekcia na zoskupenie ${circuits} obvodov`);
+  if (circuits > 1 && !i.groupingType && kG.type) {
+    addDefault(r, 'uloženie viacerých káblov', GROUP_LABEL[kG.type] || kG.type,
+      ground ? 'podľa spôsobu uloženia' : 'nezadané — najprísnejší riadok tabuľky; v jednej vrstve na stene alebo rošte by súčiniteľ bol miernejší');
+  }
+
+  /* 3. harmonická — len trojfázový obvod s nulovým vodičom, keď je zadaná */
+  let kH = 1;
+  let hInfo = null;
+  if (loadedCores === 3 && i.thd !== undefined && i.thd !== '' && i.thd !== null && Number(i.thd) > 0) {
+    hInfo = harmonicFactor(lookup, Number(i.thd));
+    useRef(r, hInfo.ref);
+    kH = hInfo.factor;
+  }
+  r.kHarm = kH;
 
   if (S !== undefined && S !== '' && S !== null) {
     const sNum = Number(S);
@@ -134,7 +170,7 @@ export function ampacity(i, lookup, r = newResult('Prúdová zaťažiteľnosť I
     useRef(r, tabRef);
     const kt = kT.factor ?? 1;
     const kg = kG.factor ?? 1;
-    const iz = base * kt * kg;
+    const iz = base * kt * kg * kH;
 
     step(r, 'Tabuľková zaťažiteľnosť',
       `Iz_tab (${insulation}, ${material}, ${method}, ${loadedCores} žily, ${sNum} mm²)`,
@@ -150,9 +186,16 @@ export function ampacity(i, lookup, r = newResult('Prúdová zaťažiteľnosť I
       `${circuits} obvod(ov), typ "${kG.type}" → tabuľka ${kG.usedKey}`,
       `${fmt(kg, 3)}`,
       kG.ref ? `${kG.ref.standard} — ${kG.ref.table}` : '');
+    if (hInfo) {
+      step(r, 'Korekcia na 3. harmonickú',
+        hInfo.neutralBased ? 'k_harm = k_E.52.1 / (3 · h)  (kábel sa vyberá podľa prúdu v N)' : 'k_harm = k_E.52.1',
+        hInfo.neutralBased ? `${fmt(hInfo.tableFactor, 2)} / (3 · ${fmt(Number(i.thd) / 100, 2)})` : `3. harmonická ${fmt(Number(i.thd), 0)} %`,
+        `${fmt(kH, 3)}`,
+        `${hInfo.ref.standard} — ${hInfo.ref.table}`);
+    }
     step(r, 'Zaťažiteľnosť po korekciách',
-      'Iz = Iz_tab · k_teplota · k_zoskupenie',
-      `${fmt(base, 1)} · ${fmt(kt, 3)} · ${fmt(kg, 3)}`,
+      hInfo ? 'Iz = Iz_tab · k_teplota · k_zoskupenie · k_harm' : 'Iz = Iz_tab · k_teplota · k_zoskupenie',
+      hInfo ? `${fmt(base, 1)} · ${fmt(kt, 3)} · ${fmt(kg, 3)} · ${fmt(kH, 3)}` : `${fmt(base, 1)} · ${fmt(kt, 3)} · ${fmt(kg, 3)}`,
       `${fmt(iz, 2)} A`);
 
     r.izTable = base;
@@ -183,7 +226,7 @@ export function ampacityAll(i, lookup) {
   for (const S of probe.sections || []) {
     const got = izLookup(lookup, q, S);
     if (got.missing) continue;
-    out.push({ S, izTable: got.value, iz: got.value * (probe.kTemp ?? 1) * (probe.kGroup ?? 1), ref: got.ref });
+    out.push({ S, izTable: got.value, iz: got.value * (probe.kTemp ?? 1) * (probe.kGroup ?? 1) * (probe.kHarm ?? 1), ref: got.ref });
   }
   return { list: out, probe };
 }

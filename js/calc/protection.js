@@ -3,7 +3,7 @@
  */
 
 import { SQRT3, newResult, step, useRef, addDefault, note, check, missing, round, fmt, num, resistancePerM, largestRatingUpTo, smallestRatingAtLeast } from './core.js';
-import { dsMagnetic, dsI2, dsDisconnectTime } from '../data/norms.js';
+import { dsMagnetic, dsI2, dsDisconnectTime, dsRatings } from '../data/norms.js';
 
 /* ───────────────── záťaž ───────────────── */
 
@@ -72,7 +72,7 @@ export function coordination({ Ib, In, Iz, device }, lookup, r = newResult('Koor
 /** Najväčšie istenie, ktoré kábel s danou Iz unesie (rešpektuje aj I2). */
 export function maxRatingForCable({ Iz, device }, lookup) {
   const i2 = lookup.get(dsI2(device), [device]);
-  const ratings = lookup.get('breakerRatings', [deviceFamily(device)]);
+  const ratings = lookup.get(dsRatings(deviceFamily(device)), [deviceFamily(device)]);
   if (i2.missing || ratings.missing) return { In: null, refs: [i2.ref, ratings.ref] };
   const limit = Math.min(Iz, (1.45 / i2.value) * Iz);
   return { In: largestRatingUpTo(ratings.value, limit), limit, refs: [i2.ref, ratings.ref] };

@@ -2,7 +2,7 @@
  * Automatické testy výpočtov.  Spustenie:  node tests/run.mjs
  */
 
-import { createLookup, DATASETS } from '../js/data/norms.js';
+import { createLookup, DATASETS, STANDARDS } from '../js/data/norms.js';
 import { grade, newResult, InputError, round } from '../js/calc/core.js';
 import { dropVolts, voltageDrop, maxLengthByDrop } from '../js/calc/voltdrop.js';
 import { ampacity, ampacityAll } from '../js/calc/ampacity.js';
@@ -195,6 +195,55 @@ t('wallbox 11 kW v Nemecku: stačí ohlásiť, ale platí § 14a', () => {
   const r = wallbox({ powerClass: 11, L: 20, country: 'DE' }, L);
   ok(!r.checks.some((c) => c.label.includes('12 kVA')), '11 kW nemá vyžadovať súhlas');
   ok(r.notes.some((n) => n.includes('14a')), 'chýba poznámka o § 14a');
+});
+
+/* ═══════════════ 2c. KONTROLA 17. 11. 2026 ═══════════════ */
+console.log('\n── Opravy po kontrole 17. 11. 2026 ──');
+
+t('3. harmonická sa započíta do únosnosti (IEC E.52.1)', () => {
+  const q = { S: 10, material: 'Cu', insulation: 'PVC', method: 'B2', loadedCores: 3 };
+  near(ampacity({ ...q }, L).kHarm, 1, 1e-9, 'bez zadania');
+  near(ampacity({ ...q, thd: 10 }, L).kHarm, 1, 1e-9, '10 %');
+  near(ampacity({ ...q, thd: 25 }, L).kHarm, 0.86, 1e-9, '25 %');
+  near(ampacity({ ...q, thd: 40 }, L).kHarm, 0.86 / 1.2, 1e-9, '40 % → podľa prúdu v N');
+  near(ampacity({ ...q, thd: 50 }, L).kHarm, 1 / 1.5, 1e-9, '50 % → podľa prúdu v N');
+  near(ampacity({ ...q, loadedCores: 2, thd: 40 }, L).kHarm, 1, 1e-9, '1-fázový obvod sa harmonickou neznižuje');
+  const r = ampacity({ ...q, thd: 25 }, L);
+  near(r.iz, 46 * 0.86, 1e-9, 'Iz = 46 A × 0,86');
+});
+
+t('pri vysokej 3. harmonickej navrhne hrubší kábel', () => {
+  const base = { loadMode: 'current', current: 30, phases: 3, L: 15, device: 'B', material: 'Cu', insulation: 'PVC', method: 'B2', country: 'DE', Ze: 0.3 };
+  const a = modeA(base, L);
+  const b = modeA({ ...base, thd: 40 }, L);
+  ok(b.chosen.S > a.chosen.S, `s 40 % harmonickej má vyjsť väčší prierez (${a.chosen.S} → ${b.chosen.S})`);
+});
+
+t('viac káblov na povrchu (C) sa počíta ako zväzok a je to vypísané', () => {
+  const r = ampacity({ S: 2.5, material: 'Cu', insulation: 'PVC', method: 'C', loadedCores: 2, circuits: 3 }, L);
+  near(r.kGroup, 0.7, 1e-9, 'C, 3 káble → riadok „zväzok“ 0,70');
+  ok(r.defaults.some((d) => d.what.includes('uloženie viacerých')), 'chýba vypísaný predpoklad uloženia');
+  const one = ampacity({ S: 2.5, material: 'Cu', insulation: 'PVC', method: 'C', loadedCores: 2, circuits: 3, groupingType: 'singleLayer' }, L);
+  near(one.kGroup, 0.79, 1e-9, 'jedna vrstva na stene → 0,79');
+});
+
+t('rad poistiek je oddelený od ističov a neoverený', () => {
+  ok(DATASETS.fuseRatings.data.gG.includes(35), 'v rade gG chýba 35 A');
+  eq(DATASETS.fuseRatings.verified, false, 'rad poistiek nemá zdroj');
+  const mcb = modeA({ loadMode: 'current', current: 16, phases: 1, L: 20, device: 'B', material: 'Cu', insulation: 'PVC', method: 'B2', country: 'DE' }, L);
+  ok(!mcb.refs.some((x) => x.datasetId === 'fuseRatings'), 'výsledok s ističom nemá siahať na rad poistiek');
+  const fuse = modeA({ loadMode: 'current', current: 33, phases: 3, L: 20, device: 'gG', material: 'Cu', insulation: 'PVC', method: 'B2', country: 'DE' }, L);
+  ok(fuse.refs.some((x) => x.datasetId === 'fuseRatings'), 'výsledok s poistkou má uviesť rad poistiek');
+  eq(fuse.In, 35, 'na 33 A má byť najbližšia poistka 35 A');
+});
+
+t('vydania noriem: dohľadané a s odkazom na záznam', () => {
+  const by = Object.fromEntries(STANDARDS.map((x) => [x.id, x]));
+  eq(by['DIN VDE 0298-4'].edition.startsWith('2023-06'), true, 'DIN VDE 0298-4');
+  eq(by['DIN 18015-1'].edition, '2020-05', 'DIN 18015-1');
+  eq(by['STN 33 2000-4-43'].edition, '07/2024', 'STN 33 2000-4-43');
+  ok(by['STN 33 2000-5-52'].note.includes('A12') && by['STN 33 2000-5-52'].note.includes('31. 1. 2028'), 'chýba stav zmien A12 a A1');
+  for (const x of STANDARDS) if (x.found && x.id.startsWith('STN')) ok(x.url, `${x.id} nemá odkaz na záznam ÚNMS`);
 });
 
 /* ═══════════════ 3. Iz A KOREKCIE ═══════════════ */

@@ -15,6 +15,7 @@ function plainDefault(d) {
   if (w.startsWith('teplota okolia')) return `je tam do ${d.value}`;
   if (w.startsWith('teplota zeme')) return `zem má ${d.value}`;
   if (w.startsWith('počet súbežných')) return 'kábel ide sám';
+  if (w.startsWith('uloženie viacerých')) return `káble sú ${d.value}`;
   if (w.startsWith('povolený úbytok')) return `napätie smie klesnúť najviac o ${d.value}`;
   if (w.startsWith('Ze')) return 'sieť je bežná (odhad — nemeral si ju)';
   if (w === 'izolácia') return 'kábel má PVC izoláciu';
